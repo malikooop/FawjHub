@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Upload, FileText, MoreVertical, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
+import { Search, Upload, FileText, Trash2, Edit3, Eye, EyeOff } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResourceTypeBadge } from '@/components/resource-type-badge';
 import { LoadingState, EmptyState } from '@/components/states';
+import { useConfirmDialog } from '@/components/confirm-dialog';
 import { supabase } from '@/lib/supabase/client';
 import type { Resource, Subject, ResourceType } from '@/lib/types';
 import { RESOURCE_TYPE_LABELS, RESOURCE_TYPE_ORDER } from '@/lib/types';
@@ -21,6 +22,7 @@ export default function AdminResourcesPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<ResourceType | 'all'>('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
+  const { confirm, dialog } = useConfirmDialog();
 
   useEffect(() => {
     async function load() {
@@ -50,27 +52,38 @@ export default function AdminResourcesPage() {
     });
   }, [resources, typeFilter, subjectFilter, search]);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-    const { error } = await supabase.from('resources').delete().eq('id', id);
-    if (error) {
-      toast.error('Failed to delete resource');
-    } else {
-      toast.success('Resource deleted');
-      setResources(resources.filter((r) => r.id !== id));
-    }
+  const handleDelete = (id: string, title: string) => {
+    confirm({
+      title: 'Delete Resource',
+      description: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const { error } = await supabase.from('resources').delete().eq('id', id);
+        if (error) {
+          toast.error('Failed to delete resource');
+        } else {
+          toast.success('Resource deleted');
+          setResources(resources.filter((r) => r.id !== id));
+        }
+      },
+    });
   };
 
   const togglePublished = async (resource: Resource) => {
     const { error } = await supabase
       .from('resources')
-      .update({ published: !resource.published })
+      .update({ published: !resource.published, status: !resource.published ? 'published' : 'draft' })
       .eq('id', resource.id);
     if (error) {
       toast.error('Failed to update');
     } else {
       toast.success(resource.published ? 'Unpublished' : 'Published');
-      setResources(resources.map((r) => r.id === resource.id ? { ...r, published: !r.published } : r));
+      setResources(resources.map((r) => r.id === resource.id ? {
+        ...r,
+        published: !r.published,
+        status: !r.published ? 'published' : 'draft',
+      } : r));
     }
   };
 
@@ -78,6 +91,7 @@ export default function AdminResourcesPage() {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Resources</h1>
@@ -162,7 +176,7 @@ export default function AdminResourcesPage() {
                   <span>{formatRelativeDate(resource.created_at)}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-shrink-0">
                 <Button
                   variant="ghost"
                   size="icon"

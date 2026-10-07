@@ -1,4 +1,6 @@
-export type ResourceType = 'cours' | 'td' | 'tp' | 'summary' | 'exam' | 'correction';
+export type ResourceType = 'cours' | 'td' | 'tp' | 'summary' | 'exam' | 'correction' | 'other';
+
+export type ResourceStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'published';
 
 export interface Subject {
   id: string;
@@ -30,6 +32,10 @@ export interface Resource {
   published: boolean;
   is_important: boolean;
   download_count: number;
+  uploaded_by: string | null;
+  sha256: string;
+  status: ResourceStatus;
+  corrects_resource_id: string | null;
   created_at: string;
   updated_at: string;
   subject?: Subject;
@@ -76,9 +82,10 @@ export const RESOURCE_TYPE_LABELS: Record<ResourceType, string> = {
   summary: 'Summary',
   exam: 'Exam',
   correction: 'Correction',
+  other: 'Other',
 };
 
-export const RESOURCE_TYPE_ORDER: ResourceType[] = ['cours', 'td', 'tp', 'summary', 'exam', 'correction'];
+export const RESOURCE_TYPE_ORDER: ResourceType[] = ['cours', 'td', 'tp', 'summary', 'exam', 'correction', 'other'];
 
 export const RESOURCE_TYPE_COLORS: Record<ResourceType, string> = {
   cours: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
@@ -87,4 +94,5 @@ export const RESOURCE_TYPE_COLORS: Record<ResourceType, string> = {
   summary: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
   exam: 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300',
   correction: 'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+  other: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
 };

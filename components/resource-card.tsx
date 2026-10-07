@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { FileText, Download, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Resource, Subject } from '@/lib/types';
-import { RESOURCE_TYPE_LABELS } from '@/lib/types';
 import { ResourceTypeBadge } from '@/components/resource-type-badge';
 import { BookmarkButton } from '@/components/bookmark-button';
 import { formatRelativeDate, formatDownloadCount, formatFileSize } from '@/lib/format';
@@ -19,15 +18,14 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
   const subj = subject || resource.subject;
 
   return (
-    <Link
-      href={`/resources/${resource.id}`}
+    <div
       className={cn(
         'group flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30',
         className
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-3 min-w-0 flex-1">
+        <Link href={`/resources/${resource.id}`} className="flex items-start gap-3 min-w-0 flex-1">
           <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
             <FileText className="h-4 w-4" />
           </div>
@@ -44,7 +42,7 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
               )}
             </div>
           </div>
-        </div>
+        </Link>
         {showBookmark && <BookmarkButton resourceId={resource.id} />}
       </div>
 
@@ -54,7 +52,7 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
         </p>
       )}
 
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <Link href={`/resources/${resource.id}`} className="flex items-center gap-3 text-xs text-muted-foreground">
         {resource.academic_year && (
           <span className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
@@ -69,7 +67,7 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
           <span>{formatFileSize(resource.file_size)}</span>
         )}
         <span className="ml-auto">{formatRelativeDate(resource.created_at)}</span>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }

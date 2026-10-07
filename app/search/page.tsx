@@ -12,6 +12,15 @@ import { supabase } from '@/lib/supabase/client';
 import type { Resource, ResourceType } from '@/lib/types';
 import { RESOURCE_TYPE_LABELS, RESOURCE_TYPE_ORDER } from '@/lib/types';
 
+// Sanitize search input to prevent PostgREST filter injection
+function sanitizeSearchTerm(input: string): string {
+  return input
+    .replace(/[%_\\()*]/g, ' ')  // Remove PostgREST/ilike special chars
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100); // Limit length
+}
+
 export default function SearchPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -38,21 +47,64 @@ export default function SearchPage() {
     setLoading(true);
     setHasSearched(true);
 
-    let queryBuilder = supabase
-      .from('resources')
-      .select('*, subject:subjects(*)')
-      .eq('published', true);
+    const sanitized = sanitizeSearchTerm(q);
 
-    const trimmed = q.trim();
-    if (trimmed) {
-      queryBuilder = queryBuilder.or(
-        `title.ilike.%${trimmed}%,description.ilike.%${trimmed}%,teacher.ilike.%${trimmed}%`
-      );
+    if (!sanitized) {
+      // No valid search term — show all published resources
+      const { data } = await supabase
+        .from('resources')
+        .select('*, subject:subjects(*)')
+        .eq('published', true)
+        .order('download_count', { ascending: false })
+        .limit(50);
+      setResources(data as Resource[] || []);
+    } else {
+      // Use the safe RPC function for search
+      const { data, error } = await supabase.rpc('search_resources', { search_term: sanitized });
+      if (error) {
+        setResources([]);
+      } else {
+        // Map RPC result to Resource[] with nested subject
+        const mapped = (data || []).map((row: Record<string, unknown>) => ({
+          id: row.id,
+          title: row.title,
+          description: row.description,
+          subject_id: row.subject_id,
+          resource_type: row.resource_type,
+          semester: row.semester,
+          academic_year: row.academic_year,
+          teacher: row.teacher,
+          file_url: row.file_url,
+          file_name: row.file_name,
+          file_size: row.file_size,
+          file_type: row.file_type,
+          published: row.published,
+          is_important: row.is_important,
+          download_count: row.download_count,
+          uploaded_by: row.uploaded_by,
+          sha256: row.sha256,
+          status: row.status,
+          corrects_resource_id: row.corrects_resource_id,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          subject: row.subject_id_1 ? {
+            id: row.subject_id_1,
+            name: row.subject_name,
+            slug: row.subject_slug,
+            description: row.subject_description,
+            code: row.subject_code,
+            semester: row.subject_semester,
+            color: row.subject_color,
+            icon: row.subject_icon,
+            sort_order: row.subject_sort_order,
+            created_at: row.subject_created_at,
+            updated_at: row.subject_updated_at,
+          } : undefined,
+        })) as Resource[];
+        setResources(mapped);
+      }
     }
 
-    const { data } = await queryBuilder.order('download_count', { ascending: false }).limit(50);
-
-    setResources(data as Resource[] || []);
     setLoading(false);
   };
 
@@ -90,6 +142,7 @@ export default function SearchPage() {
               type="button"
               onClick={() => setQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
             >
               <X className="h-4 w-4" />
             </button>
@@ -110,7 +163,7 @@ export default function SearchPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              {RESOURCE_TYPE_ORDER.map((type) => (
+              {RESOURCE_TYPE_ORDER.filter((t) => t !== 'other').map((type) => (
                 <SelectItem key={type} value={type}>{RESOURCE_TYPE_LABELS[type]}</SelectItem>
               ))}
             </SelectContent>

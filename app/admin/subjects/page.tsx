@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, BookOpen, Trash2, Edit3, X, Save, Loader2 } from 'lucide-react';
+import { Plus, BookOpen, Trash2, Edit3, Save, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { LoadingState, EmptyState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
 import type { Subject } from '@/lib/types';
 import { toast } from 'sonner';
+import { useConfirmDialog } from '@/components/confirm-dialog';
 
 const ICON_OPTIONS = ['BookOpen', 'Binary', 'Cpu', 'BarChart3', 'Code', 'Monitor', 'Database', 'FunctionSquare', 'Brain', 'Calculator', 'Network', 'FlaskConical'];
 
@@ -25,6 +26,7 @@ export default function AdminSubjectsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Subject | null>(null);
   const [saving, setSaving] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   const [form, setForm] = useState({
     name: '',
@@ -114,21 +116,29 @@ export default function AdminSubjectsPage() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Delete "${name}"? All resources in this subject will also be deleted.`)) return;
-    const { error } = await supabase.from('subjects').delete().eq('id', id);
-    if (error) {
-      toast.error('Failed to delete: ' + error.message);
-    } else {
-      toast.success('Subject deleted');
-      setSubjects(subjects.filter((s) => s.id !== id));
-    }
+  const handleDelete = (id: string, name: string) => {
+    confirm({
+      title: 'Delete Subject',
+      description: `Are you sure you want to delete "${name}"? All resources in this subject will also be deleted. This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        const { error } = await supabase.from('subjects').delete().eq('id', id);
+        if (error) {
+          toast.error('Failed to delete: ' + error.message);
+        } else {
+          toast.success('Subject deleted');
+          setSubjects(subjects.filter((s) => s.id !== id));
+        }
+      },
+    });
   };
 
   if (loading) return <LoadingState message="Loading subjects..." />;
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Subjects</h1>

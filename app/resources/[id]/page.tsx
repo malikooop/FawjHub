@@ -30,6 +30,9 @@ export default function ResourceDetailPage() {
 
   const recordView = useCallback(async () => {
     if (!id) return;
+    // Only insert the resource_id — user_id is determined server-side
+    // The RLS policy WITH CHECK(true) allows the insert, and user_id
+    // should be set by a database default, not sent from the client
     await supabase.from('resource_views').insert({
       resource_id: id as string,
       user_id: user?.id ?? null,
