@@ -1,5 +1,5 @@
 import './globals.css';
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import inter from '@/lib/fonts';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
@@ -18,19 +18,12 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#0f1117' },
-  ],
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-};
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        <meta name="theme-color" content="#2563eb" />
+      </head>
       <body className="font-sans antialiased">
         <ThemeProvider>
           <AuthProvider>

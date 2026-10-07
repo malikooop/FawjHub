@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { TrendingUp, CheckCircle2, Clock, BookOpen, BarChart3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+
 import { ResourceCard } from '@/components/resource-card';
 import { LoadingState, EmptyState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
@@ -170,7 +170,9 @@ export default function ProfilePage() {
                         {data.completed}/{data.total} ({pct}%)
                       </span>
                     </div>
-                    <Progress value={pct} className="h-2" />
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                      <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+                    </div>
                   </CardContent>
                 </Card>
               );
