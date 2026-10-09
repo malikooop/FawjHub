@@ -5,6 +5,7 @@ import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
 interface BookmarkButtonProps {
@@ -15,6 +16,7 @@ interface BookmarkButtonProps {
 
 export function BookmarkButton({ resourceId, variant = 'icon', className }: BookmarkButtonProps) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [bookmarked, setBookmarked] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +37,9 @@ export function BookmarkButton({ resourceId, variant = 'icon', className }: Book
       });
   }, [user, resourceId]);
 
-  const toggle = async () => {
+  const toggle = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (!user) return;
     setLoading(true);
 
@@ -64,8 +68,8 @@ export function BookmarkButton({ resourceId, variant = 'icon', className }: Book
         size="icon"
         onClick={toggle}
         disabled={loading}
-        aria-label={bookmarked ? 'Remove bookmark' : 'Add bookmark'}
-        className={cn('h-8 w-8', className)}
+        aria-label={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
+        className={cn('h-8 w-8 flex-shrink-0', className)}
       >
         {bookmarked ? (
           <BookmarkCheck className="h-4 w-4 text-primary" />
@@ -87,12 +91,12 @@ export function BookmarkButton({ resourceId, variant = 'icon', className }: Book
       {bookmarked ? (
         <>
           <BookmarkCheck className="h-4 w-4 text-primary" />
-          Bookmarked
+          {t('resource.bookmarked')}
         </>
       ) : (
         <>
           <Bookmark className="h-4 w-4" />
-          Bookmark
+          {t('resource.bookmark')}
         </>
       )}
     </Button>

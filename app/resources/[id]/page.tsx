@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ChevronLeft, FileText, Download, Calendar, User, HardDrive,
-  Eye, CheckCircle2, Circle, ExternalLink
+  CheckCircle2, Circle, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { ResourceCard } from '@/components/resource-card';
 import { LoadingState, ErrorState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useI18n } from '@/lib/i18n';
 import type { Resource, Subject } from '@/lib/types';
 import { formatFileSize, formatDate, formatDownloadCount } from '@/lib/format';
 
@@ -21,6 +22,7 @@ export default function ResourceDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { t, locale } = useI18n();
   const [resource, setResource] = useState<Resource | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [related, setRelated] = useState<Resource[]>([]);
@@ -30,9 +32,6 @@ export default function ResourceDetailPage() {
 
   const recordView = useCallback(async () => {
     if (!id) return;
-    // Only insert the resource_id — user_id is determined server-side
-    // The RLS policy WITH CHECK(true) allows the insert, and user_id
-    // should be set by a database default, not sent from the client
     await supabase.from('resource_views').insert({
       resource_id: id as string,
       user_id: user?.id ?? null,
@@ -57,7 +56,6 @@ export default function ResourceDetailPage() {
       setResource(res);
       setSubject(res.subject || null);
 
-      // Load related resources
       const { data: rel } = await supabase
         .from('resources')
         .select('*, subject:subjects(*)')
@@ -118,23 +116,25 @@ export default function ResourceDetailPage() {
     }
   };
 
-  if (loading) return <LoadingState message="Loading resource..." />;
-  if (error || !resource) return <ErrorState message="Resource not found" />;
+  if (loading) return <LoadingState message={t('resource.loading')} />;
+  if (error || !resource) return <ErrorState message={t('resource.notFound')} />;
+
+  const typeLabel = t(`type.${resource.resource_type}`);
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl mx-auto">
-      <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1 -ml-2 text-muted-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        Back
+      <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-1 -ml-2 text-muted-foreground rtl:ml-0 rtl:-mr-2">
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {t('resource.back')}
       </Button>
 
       {/* Resource Header */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
-          <ResourceTypeBadge type={resource.resource_type} />
+          <ResourceTypeBadge type={resource.resource_type} label={typeLabel} />
           {resource.is_important && (
             <span className="rounded-md bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
-              Important
+              {t('resource.important')}
             </span>
           )}
           {subject && (
@@ -158,28 +158,28 @@ export default function ResourceDetailPage() {
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <Calendar className="h-3 w-3" />
-            Academic Year
+            {t('resource.academicYear')}
           </div>
           <p className="text-sm font-medium">{resource.academic_year || '—'}</p>
         </div>
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <User className="h-3 w-3" />
-            Teacher
+            {t('resource.teacher')}
           </div>
           <p className="text-sm font-medium">{resource.teacher || '—'}</p>
         </div>
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <Download className="h-3 w-3" />
-            Downloads
+            {t('resource.downloads')}
           </div>
           <p className="text-sm font-medium">{formatDownloadCount(resource.download_count)}</p>
         </div>
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <HardDrive className="h-3 w-3" />
-            File Size
+            {t('resource.fileSize')}
           </div>
           <p className="text-sm font-medium">{resource.file_size > 0 ? formatFileSize(resource.file_size) : '—'}</p>
         </div>
@@ -189,7 +189,7 @@ export default function ResourceDetailPage() {
       <div className="flex flex-wrap items-center gap-3">
         <Button onClick={handleDownload} className="gap-2" size="lg">
           <Download className="h-4 w-4" />
-          Download / Open
+          {t('resource.downloadOpen')}
         </Button>
         <BookmarkButton resourceId={resource.id} variant="default" />
         {user && (
@@ -202,12 +202,12 @@ export default function ResourceDetailPage() {
             {completed ? (
               <>
                 <CheckCircle2 className="h-4 w-4 text-success" />
-                Completed
+                {t('resource.completed')}
               </>
             ) : (
               <>
                 <Circle className="h-4 w-4" />
-                Mark as completed
+                {t('resource.markCompleted')}
               </>
             )}
           </Button>
@@ -218,14 +218,14 @@ export default function ResourceDetailPage() {
       {resource.file_url && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Preview</h2>
+            <h2 className="text-sm font-semibold">{t('resource.preview')}</h2>
             <a
               href={resource.file_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              Open in new tab
+              {t('resource.openNewTab')}
               <ExternalLink className="h-3 w-3" />
             </a>
           </div>
@@ -238,11 +238,11 @@ export default function ResourceDetailPage() {
               <div className="flex h-[500px] flex-col items-center justify-center gap-3 p-8 text-center">
                 <FileText className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground">
-                  PDF preview is not available in your browser.
+                  {t('resource.previewUnavailable')}
                 </p>
                 <Button onClick={handleDownload} variant="outline" className="gap-2">
                   <Download className="h-4 w-4" />
-                  Download to view
+                  {t('resource.downloadToView')}
                 </Button>
               </div>
             </object>
@@ -253,17 +253,17 @@ export default function ResourceDetailPage() {
       {/* Related Resources */}
       {related.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Related Resources</h2>
+          <h2 className="text-lg font-semibold">{t('resource.relatedResources')}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
             {related.map((rel) => (
-              <ResourceCard key={rel.id} resource={rel} showSubject={false} />
+              <ResourceCard key={rel.id} resource={rel} showSubject={false} typeLabel={t(`type.${rel.resource_type}`)} />
             ))}
           </div>
         </div>
       )}
 
       <div className="pt-2 text-xs text-muted-foreground">
-        Added on {formatDate(resource.created_at)}
+        {t('resource.addedOn', { date: formatDate(resource.created_at, locale) })}
       </div>
     </div>
   );

@@ -6,9 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ResourceCard } from '@/components/resource-card';
 import { LoadingState, EmptyState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
+import { useI18n } from '@/lib/i18n';
 import type { Resource, Subject } from '@/lib/types';
 
 export default function ExamsPage() {
+  const { t } = useI18n();
   const [resources, setResources] = useState<Resource[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,14 +45,14 @@ export default function ExamsPage() {
     });
   }, [resources, subjectFilter, typeFilter]);
 
-  if (loading) return <LoadingState message="Loading exams archive..." />;
+  if (loading) return <LoadingState message={t('exams.loading')} />;
 
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight">Exams Archive</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('exams.title')}</h1>
         <p className="text-muted-foreground text-sm">
-          Previous exams and their corrections across all subjects.
+          {t('exams.subtitle')}
         </p>
       </div>
 
@@ -61,10 +63,10 @@ export default function ExamsPage() {
         </div>
         <Select value={subjectFilter} onValueChange={setSubjectFilter}>
           <SelectTrigger className="w-[180px] h-9">
-            <SelectValue placeholder="Subject" />
+            <SelectValue placeholder={t('nav.subjects')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Subjects</SelectItem>
+            <SelectItem value="all">{t('exams.allSubjects')}</SelectItem>
             {subjects.map((s) => (
               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
@@ -73,12 +75,12 @@ export default function ExamsPage() {
 
         <Select value={typeFilter} onValueChange={setTypeFilter}>
           <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Type" />
+            <SelectValue placeholder={t('search.allTypes')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="exam">Exams</SelectItem>
-            <SelectItem value="correction">Corrections</SelectItem>
+            <SelectItem value="all">{t('exams.allTypes')}</SelectItem>
+            <SelectItem value="exam">{t('exams.exams')}</SelectItem>
+            <SelectItem value="correction">{t('exams.corrections')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -86,15 +88,17 @@ export default function ExamsPage() {
       {filtered.length === 0 ? (
         <EmptyState
           icon={<FileText className="h-6 w-6" />}
-          title="No exams found"
-          description="No exams match your current filters. Try adjusting them."
+          title={t('exams.noResults')}
+          description={t('exams.noResultsDesc')}
         />
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">{filtered.length} resource{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('subjects.resources', { count: filtered.length })}
+          </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((resource) => (
-              <ResourceCard key={resource.id} resource={resource} showSubject />
+              <ResourceCard key={resource.id} resource={resource} showSubject typeLabel={t(`type.${resource.resource_type}`)} />
             ))}
           </div>
         </>

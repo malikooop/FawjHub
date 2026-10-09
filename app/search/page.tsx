@@ -9,19 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ResourceCard } from '@/components/resource-card';
 import { LoadingState, EmptyState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
+import { useI18n } from '@/lib/i18n';
 import type { Resource, ResourceType } from '@/lib/types';
-import { RESOURCE_TYPE_LABELS, RESOURCE_TYPE_ORDER } from '@/lib/types';
+import { RESOURCE_TYPE_ORDER } from '@/lib/types';
 
-// Sanitize search input to prevent PostgREST filter injection
 function sanitizeSearchTerm(input: string): string {
   return input
-    .replace(/[%_\\()*]/g, ' ')  // Remove PostgREST/ilike special chars
+    .replace(/[%_\\()*]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .substring(0, 100); // Limit length
+    .substring(0, 100);
 }
 
 export default function SearchPage() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialQuery = searchParams.get('q') || '';
@@ -50,7 +51,6 @@ export default function SearchPage() {
     const sanitized = sanitizeSearchTerm(q);
 
     if (!sanitized) {
-      // No valid search term — show all published resources
       const { data } = await supabase
         .from('resources')
         .select('*, subject:subjects(*)')
@@ -59,12 +59,10 @@ export default function SearchPage() {
         .limit(50);
       setResources(data as Resource[] || []);
     } else {
-      // Use the safe RPC function for search
       const { data, error } = await supabase.rpc('search_resources', { search_term: sanitized });
       if (error) {
         setResources([]);
       } else {
-        // Map RPC result to Resource[] with nested subject
         const mapped = (data || []).map((row: Record<string, unknown>) => ({
           id: row.id,
           title: row.title,
@@ -126,22 +124,22 @@ export default function SearchPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">Search</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('search.title')}</h1>
 
         <form onSubmit={handleSearch} className="relative max-w-2xl">
-          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3.5" />
           <Input
             type="search"
-            placeholder="Search resources, subjects, teachers..."
+            placeholder={t('search.placeholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-12 pl-10 pr-10 text-base"
+            className="h-12 pl-10 pr-10 text-base rtl:pl-10 rtl:pr-10"
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:right-auto rtl:left-3"
               aria-label="Clear search"
             >
               <X className="h-4 w-4" />
@@ -155,16 +153,16 @@ export default function SearchPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Filter:</span>
+            <span className="text-sm text-muted-foreground">{t('search.filter')}</span>
           </div>
           <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as ResourceType | 'all')}>
             <SelectTrigger className="w-[130px] h-9">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder={t('search.allTypes')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Types</SelectItem>
-              {RESOURCE_TYPE_ORDER.filter((t) => t !== 'other').map((type) => (
-                <SelectItem key={type} value={type}>{RESOURCE_TYPE_LABELS[type]}</SelectItem>
+              <SelectItem value="all">{t('search.allTypes')}</SelectItem>
+              {RESOURCE_TYPE_ORDER.filter((tp) => tp !== 'other').map((type) => (
+                <SelectItem key={type} value={type}>{t(`type.${type}`)}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -172,10 +170,10 @@ export default function SearchPage() {
           {years.length > 0 && (
             <Select value={yearFilter} onValueChange={setYearFilter}>
               <SelectTrigger className="w-[140px] h-9">
-                <SelectValue placeholder="Year" />
+                <SelectValue placeholder={t('search.allYears')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Years</SelectItem>
+                <SelectItem value="all">{t('search.allYears')}</SelectItem>
                 {years.map((year) => (
                   <SelectItem key={year} value={year}>{year}</SelectItem>
                 ))}
@@ -190,7 +188,7 @@ export default function SearchPage() {
               onClick={() => { setTypeFilter('all'); setYearFilter('all'); }}
               className="text-muted-foreground"
             >
-              Clear filters
+              {t('search.clearFilters')}
             </Button>
           )}
         </div>
@@ -198,28 +196,27 @@ export default function SearchPage() {
 
       {/* Results */}
       {loading ? (
-        <LoadingState message="Searching..." />
+        <LoadingState message={t('search.searching')} />
       ) : !hasSearched ? (
         <EmptyState
           icon={<SearchIcon className="h-6 w-6" />}
-          title="Start searching"
-          description="Search across all resources by title, description, subject, or teacher."
+          title={t('search.startSearching')}
+          description={t('search.startSearchingDesc')}
         />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<SearchIcon className="h-6 w-6" />}
-          title="No results found"
-          description={query ? `No resources match "${query}".` : 'Try a different search term.'}
+          title={t('search.noResults')}
+          description={query ? t('search.noResultsDesc', { query }) : t('search.tryDifferent')}
         />
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
-            {query && ` for "${query}"`}
+            {t('search.resultsFor', { count: filtered.length, query })}
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((resource) => (
-              <ResourceCard key={resource.id} resource={resource} showSubject />
+              <ResourceCard key={resource.id} resource={resource} showSubject typeLabel={t(`type.${resource.resource_type}`)} />
             ))}
           </div>
         </>

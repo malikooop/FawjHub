@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import type { Subject } from '@/lib/types';
 import { RESOURCE_TYPE_ORDER } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 import * as Icons from 'lucide-react';
 
 interface SubjectCardProps {
@@ -11,6 +12,7 @@ interface SubjectCardProps {
 }
 
 export function SubjectCard({ subject, resourceCount, completedCount }: SubjectCardProps) {
+  const { t } = useI18n();
   const Icon = (Icons[subject.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>) ?? Icons.BookOpen;
   const progress = resourceCount && completedCount !== undefined && resourceCount > 0
     ? Math.round((completedCount / resourceCount) * 100)
@@ -29,7 +31,7 @@ export function SubjectCard({ subject, resourceCount, completedCount }: SubjectC
           <Icon className="h-5 w-5" />
         </div>
         <span className="text-xs font-medium text-muted-foreground">
-          {resourceCount !== undefined ? `${resourceCount} files` : subject.code}
+          {resourceCount !== undefined ? `${resourceCount} ${t('subjects.files')}` : subject.code}
         </span>
       </div>
 
@@ -45,7 +47,7 @@ export function SubjectCard({ subject, resourceCount, completedCount }: SubjectC
       {resourceCount !== undefined && completedCount !== undefined && resourceCount > 0 && (
         <div className="mt-auto space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">Progress</span>
+            <span className="text-muted-foreground">{t('subjects.progress')}</span>
             <span className="font-medium">{progress}%</span>
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
@@ -61,7 +63,7 @@ export function SubjectCard({ subject, resourceCount, completedCount }: SubjectC
         <div className="mt-auto flex flex-wrap gap-1">
           {RESOURCE_TYPE_ORDER.slice(0, 4).map((type) => (
             <span key={type} className="rounded bg-secondary px-1.5 py-0.5 text-[0.65rem] font-medium uppercase text-muted-foreground">
-              {type}
+              {t(`type.${type}`)}
             </span>
           ))}
         </div>

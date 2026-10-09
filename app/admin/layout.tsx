@@ -4,17 +4,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, FileText, Upload, BookOpen, ChevronLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import { AdminGuard } from '@/components/admin/admin-guard';
-
-const adminNav = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/resources', label: 'Resources', icon: FileText },
-  { href: '/admin/upload', label: 'Upload', icon: Upload },
-  { href: '/admin/subjects', label: 'Subjects', icon: BookOpen },
-];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { t } = useI18n();
+
+  const adminNav = [
+    { href: '/admin', label: t('admin.dashboard'), icon: LayoutDashboard },
+    { href: '/admin/resources', label: t('admin.resources'), icon: FileText },
+    { href: '/admin/upload', label: t('admin.upload'), icon: Upload },
+    { href: '/admin/subjects', label: t('admin.subjects'), icon: BookOpen },
+  ];
 
   return (
     <AdminGuard>
@@ -23,8 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <aside className="lg:w-56 lg:flex-shrink-0">
           <div className="flex items-center gap-2 mb-4">
             <Link href="/" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-              <ChevronLeft className="h-4 w-4" />
-              Back to app
+              <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+              {t('admin.backToApp')}
             </Link>
           </div>
           <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">

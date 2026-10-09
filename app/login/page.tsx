@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useI18n } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
   const { signIn, signUp } = useAuth();
+  const { t } = useI18n();
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,7 +31,7 @@ export default function LoginPage() {
         toast.error(error);
         setLoading(false);
       } else {
-        toast.success('Welcome back!');
+        toast.success(t('auth.welcomeBack'));
         router.push('/');
       }
     } else {
@@ -38,7 +40,7 @@ export default function LoginPage() {
         toast.error(error);
         setLoading(false);
       } else {
-        toast.success('Account created! You are now signed in.');
+        toast.success(t('auth.accountCreated'));
         router.push('/');
       }
     }
@@ -54,7 +56,7 @@ export default function LoginPage() {
           <div>
             <CardTitle className="text-xl">FawjHub</CardTitle>
             <CardDescription className="mt-1">
-              {mode === 'signin' ? 'Sign in to your study hub' : 'Create your account'}
+              {mode === 'signin' ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -63,16 +65,16 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === 'signup' && (
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name">{t('auth.fullName')}</Label>
                 <div className="relative">
-                  <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Your name"
+                    placeholder={t('auth.fullNamePlaceholder')}
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 rtl:pl-3 rtl:pr-9"
                     required
                   />
                 </div>
@@ -80,32 +82,32 @@ export default function LoginPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('auth.email')}</Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@university.edu"
+                  placeholder={t('auth.emailPlaceholder')}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 rtl:pl-3 rtl:pr-9"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t('auth.password')}</Label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
                 <Input
                   id="password"
                   type="password"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 rtl:pl-3 rtl:pr-9"
                   required
                   minLength={6}
                 />
@@ -114,29 +116,29 @@ export default function LoginPage() {
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {mode === 'signin' ? 'Sign in' : 'Create account'}
+              {mode === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             {mode === 'signin' ? (
               <>
-                Don't have an account?{' '}
+                {t('auth.noAccount')}{' '}
                 <button
                   onClick={() => setMode('signup')}
                   className="font-medium text-primary hover:underline"
                 >
-                  Sign up
+                  {t('auth.signUp')}
                 </button>
               </>
             ) : (
               <>
-                Already have an account?{' '}
+                {t('auth.haveAccount')}{' '}
                 <button
                   onClick={() => setMode('signin')}
                   className="font-medium text-primary hover:underline"
                 >
-                  Sign in
+                  {t('auth.signIn')}
                 </button>
               </>
             )}
