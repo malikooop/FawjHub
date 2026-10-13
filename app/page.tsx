@@ -1,22 +1,24 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, FileText, TrendingUp, ArrowRight, BookOpen, Star, Clock, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { SubjectCard } from '@/components/subject-card';
 import { ResourceCard } from '@/components/resource-card';
 import { LoadingState, EmptyState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useI18n } from '@/lib/i18n';
 import type { Subject, Resource, Progress } from '@/lib/types';
 
 export default function HomePage() {
   const router = useRouter();
   const { user, profile } = useAuth();
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [recentResources, setRecentResources] = useState<Resource[]>([]);
@@ -69,9 +71,7 @@ export default function HomePage() {
       .then(({ data }) => setProgressData(data as Progress[] || []));
   }, [user]);
 
-  if (loading) {
-    return <LoadingState message="Loading your study hub..." />;
-  }
+  if (loading) return <LoadingState message={t('common.loading')} />;
 
   const completedCount = progressData.filter((p) => p.completed).length;
 
@@ -81,21 +81,23 @@ export default function HomePage() {
       <section className="space-y-6">
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {profile?.full_name ? `Welcome back, ${profile.full_name.split(' ')[0]}` : 'Welcome to FawjHub'}
+            {profile?.full_name
+              ? `${t('home.welcomeBack')}, ${profile.full_name.split(' ')[0]}`
+              : t('home.welcome')}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">
-            Your university's academic resources, organized in one place.
+            {t('home.subtitle')}
           </p>
         </div>
 
         <form onSubmit={handleSearch} className="relative max-w-2xl">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3.5" />
           <Input
             type="search"
-            placeholder="Search for a course, TD, TP, exam..."
+            placeholder={t('home.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-12 pl-10 pr-4 text-base"
+            className="h-12 pl-10 pr-4 text-base rtl:pl-4 rtl:pr-10"
           />
         </form>
       </section>
@@ -110,7 +112,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{completedCount}</p>
-                <p className="text-xs text-muted-foreground">Completed</p>
+                <p className="text-xs text-muted-foreground">{t('home.completed')}</p>
               </div>
             </CardContent>
           </Card>
@@ -121,7 +123,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{subjects.length}</p>
-                <p className="text-xs text-muted-foreground">Subjects</p>
+                <p className="text-xs text-muted-foreground">{t('nav.subjects')}</p>
               </div>
             </CardContent>
           </Card>
@@ -132,7 +134,7 @@ export default function HomePage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{progressData.length}</p>
-                <p className="text-xs text-muted-foreground">In Progress</p>
+                <p className="text-xs text-muted-foreground">{t('home.inProgress')}</p>
               </div>
             </CardContent>
           </Card>
@@ -145,7 +147,7 @@ export default function HomePage() {
                 <p className="text-2xl font-bold">
                   {recentResources.reduce((sum, r) => sum + r.download_count, 0)}
                 </p>
-                <p className="text-xs text-muted-foreground">Downloads</p>
+                <p className="text-xs text-muted-foreground">{t('home.downloads')}</p>
               </div>
             </CardContent>
           </Card>
@@ -155,19 +157,19 @@ export default function HomePage() {
       {/* Subjects Grid */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Subjects</h2>
+          <h2 className="text-lg font-semibold">{t('home.subjects')}</h2>
           <Link href="/subjects">
             <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
-              View all
-              <ArrowRight className="h-4 w-4" />
+              {t('home.viewAll')}
+              <ArrowRight className="h-4 w-4 rtl:rotate-180" />
             </Button>
           </Link>
         </div>
         {subjects.length === 0 ? (
           <EmptyState
             icon={<BookOpen className="h-6 w-6" />}
-            title="No subjects yet"
-            description="Subjects will appear here once they're added."
+            title={t('home.noSubjects')}
+            description={t('home.noSubjectsDesc')}
           />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -182,24 +184,24 @@ export default function HomePage() {
         {/* Recently Added */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Recently Added</h2>
+            <h2 className="text-lg font-semibold">{t('home.recentlyAdded')}</h2>
             <Link href="/search">
               <Button variant="ghost" size="sm" className="gap-1 text-muted-foreground">
-                Browse
-                <ArrowRight className="h-4 w-4" />
+                {t('home.browse')}
+                <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
             </Link>
           </div>
           {recentResources.length === 0 ? (
             <EmptyState
               icon={<FileText className="h-6 w-6" />}
-              title="No resources yet"
-              description="New resources will appear here."
+              title={t('home.noResources')}
+              description={t('home.noResourcesDesc')}
             />
           ) : (
             <div className="space-y-3">
               {recentResources.slice(0, 4).map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} showSubject />
+                <ResourceCard key={resource.id} resource={resource} showSubject typeLabel={t(`type.${resource.resource_type}`)} />
               ))}
             </div>
           )}
@@ -210,19 +212,19 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               <Star className="h-4 w-4 text-warning" />
-              Important Resources
+              {t('home.importantResources')}
             </h2>
           </div>
           {importantResources.length === 0 ? (
             <EmptyState
               icon={<Star className="h-6 w-6" />}
-              title="No important resources"
-              description="Key resources will be highlighted here."
+              title={t('home.noImportant')}
+              description={t('home.noImportantDesc')}
             />
           ) : (
             <div className="space-y-3">
               {importantResources.map((resource) => (
-                <ResourceCard key={resource.id} resource={resource} showSubject />
+                <ResourceCard key={resource.id} resource={resource} showSubject typeLabel={t(`type.${resource.resource_type}`)} />
               ))}
             </div>
           )}
@@ -238,16 +240,16 @@ export default function HomePage() {
                 <FileText className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-semibold">Previous Exams Archive</h3>
+                <h3 className="font-semibold">{t('home.examsArchive')}</h3>
                 <p className="text-sm text-muted-foreground">
-                  Access past exams and corrections across all subjects.
+                  {t('home.examsArchiveDesc')}
                 </p>
               </div>
             </div>
             <Link href="/exams">
               <Button className="gap-2">
-                Browse Exams
-                <ArrowRight className="h-4 w-4" />
+                {t('home.browseExams')}
+                <ArrowRight className="h-4 w-4 rtl:rotate-180" />
               </Button>
             </Link>
           </CardContent>

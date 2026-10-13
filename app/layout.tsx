@@ -1,8 +1,9 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import inter from '@/lib/fonts';
+import { inter, cairo } from '@/lib/fonts';
 import { AuthProvider } from '@/components/providers/auth-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { I18nProvider } from '@/lib/i18n';
 import { Header } from '@/components/header';
 import { BottomNav } from '@/components/bottom-nav';
 import { Toaster } from '@/components/ui/sonner';
@@ -20,22 +21,24 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
+    <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cairo.variable}`}>
       <head>
         <meta name="theme-color" content="#2563eb" />
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider>
-          <AuthProvider>
-            <div className="relative min-h-screen">
-              <Header />
-              <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8 md:pb-8">
-                {children}
-              </main>
-              <BottomNav />
-            </div>
-            <Toaster />
-          </AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <div className="relative min-h-screen">
+                <Header />
+                <main className="mx-auto max-w-7xl px-4 pb-20 pt-6 sm:px-6 lg:px-8 md:pb-8">
+                  {children}
+                </main>
+                <BottomNav />
+              </div>
+              <Toaster />
+            </AuthProvider>
+          </I18nProvider>
         </ThemeProvider>
       </body>
     </html>

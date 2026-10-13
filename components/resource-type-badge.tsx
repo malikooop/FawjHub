@@ -1,13 +1,14 @@
 import { cn } from '@/lib/utils';
 import type { ResourceType } from '@/lib/types';
-import { RESOURCE_TYPE_LABELS, RESOURCE_TYPE_COLORS } from '@/lib/types';
+import { RESOURCE_TYPE_COLORS } from '@/lib/types';
 
 interface ResourceTypeBadgeProps {
   type: ResourceType;
+  label: string;
   className?: string;
 }
 
-export function ResourceTypeBadge({ type, className }: ResourceTypeBadgeProps) {
+export function ResourceTypeBadge({ type, label, className }: ResourceTypeBadgeProps) {
   return (
     <span
       className={cn(
@@ -16,7 +17,7 @@ export function ResourceTypeBadge({ type, className }: ResourceTypeBadgeProps) {
         className
       )}
     >
-      {RESOURCE_TYPE_LABELS[type]}
+      {label}
     </span>
   );
 }

@@ -2,24 +2,26 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, Home, BookOpen, FileText, Bookmark, User, Shield } from 'lucide-react';
+import { Home, BookOpen, FileText, Bookmark, User, Shield } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
+import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
-
-const navItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/subjects', label: 'Subjects', icon: BookOpen },
-  { href: '/exams', label: 'Exams', icon: FileText },
-  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { href: '/profile', label: 'Profile', icon: User },
-];
 
 export function BottomNav() {
   const pathname = usePathname();
   const { isAdmin } = useAuth();
+  const { t } = useI18n();
+
+  const navItems = [
+    { href: '/', label: t('nav.home'), icon: Home },
+    { href: '/subjects', label: t('nav.subjects'), icon: BookOpen },
+    { href: '/exams', label: t('nav.exams'), icon: FileText },
+    { href: '/bookmarks', label: t('nav.bookmarks'), icon: Bookmark },
+    { href: '/profile', label: t('nav.profile'), icon: User },
+  ];
 
   const items = isAdmin
-    ? [...navItems.slice(0, 4), { href: '/admin', label: 'Admin', icon: Shield }]
+    ? [...navItems.slice(0, 4), { href: '/admin', label: t('nav.admin'), icon: Shield }]
     : navItems;
 
   if (pathname.startsWith('/login') || pathname.startsWith('/admin/')) return null;

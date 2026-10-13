@@ -5,20 +5,23 @@ import { usePathname } from 'next/navigation';
 import { GraduationCap, Home, BookOpen, FileText, Bookmark, User, Shield, LogOut, Search } from 'lucide-react';
 import { useAuth } from '@/components/providers/auth-provider';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LanguageToggle } from '@/components/language-toggle';
+import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-const navItems = [
-  { href: '/', label: 'Home', icon: Home },
-  { href: '/subjects', label: 'Subjects', icon: BookOpen },
-  { href: '/exams', label: 'Exams', icon: FileText },
-  { href: '/bookmarks', label: 'Bookmarks', icon: Bookmark },
-  { href: '/search', label: 'Search', icon: Search },
-];
 
 export function Header() {
   const pathname = usePathname();
   const { user, isAdmin, signOut, profile } = useAuth();
+  const { t } = useI18n();
+
+  const navItems = [
+    { href: '/', label: t('nav.home'), icon: Home },
+    { href: '/subjects', label: t('nav.subjects'), icon: BookOpen },
+    { href: '/exams', label: t('nav.exams'), icon: FileText },
+    { href: '/bookmarks', label: t('nav.bookmarks'), icon: Bookmark },
+    { href: '/search', label: t('nav.search'), icon: Search },
+  ];
 
   if (pathname.startsWith('/login')) return null;
 
@@ -32,7 +35,7 @@ export function Header() {
             </div>
             <div className="hidden sm:block">
               <span className="text-lg font-bold tracking-tight">FawjHub</span>
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">Academic Hub</span>
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t('brand.tagline')}</span>
             </div>
           </Link>
 
@@ -68,27 +71,28 @@ export function Header() {
                 )}
               >
                 <Shield className="h-4 w-4" />
-                Admin
+                {t('nav.admin')}
               </Link>
             )}
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
+          <LanguageToggle />
           <ThemeToggle />
           {user ? (
             <div className="flex items-center gap-2">
               <Link href="/profile">
                 <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  {profile?.full_name || 'Profile'}
+                  {profile?.full_name || t('nav.profile')}
                 </Button>
               </Link>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => signOut()}
-                aria-label="Sign out"
+                aria-label={t('nav.signout')}
                 className="h-9 w-9"
               >
                 <LogOut className="h-4 w-4" />
@@ -97,7 +101,7 @@ export function Header() {
           ) : (
             <Link href="/login">
               <Button variant="default" size="sm">
-                Sign in
+                {t('nav.signin')}
               </Button>
             </Link>
           )}

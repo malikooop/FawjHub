@@ -1,5 +1,6 @@
-import { Inter } from 'next/font/google';
+import { Inter, Cairo } from 'next/font/google';
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' });
+const cairo = Cairo({ subsets: ['arabic', 'latin'], variable: '--font-cairo', display: 'swap' });
 
-export default inter;
+export { inter, cairo };

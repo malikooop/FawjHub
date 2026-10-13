@@ -12,10 +12,12 @@ interface ResourceCardProps {
   showSubject?: boolean;
   showBookmark?: boolean;
   className?: string;
+  typeLabel?: string;
 }
 
-export function ResourceCard({ resource, subject, showSubject = false, showBookmark = true, className }: ResourceCardProps) {
+export function ResourceCard({ resource, subject, showSubject = false, showBookmark = true, className, typeLabel }: ResourceCardProps) {
   const subj = subject || resource.subject;
+  const label = typeLabel || resource.resource_type;
 
   return (
     <div
@@ -34,7 +36,7 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
               {resource.title}
             </h3>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <ResourceTypeBadge type={resource.resource_type} />
+              <ResourceTypeBadge type={resource.resource_type} label={label} />
               {showSubject && subj && (
                 <span className="text-xs text-muted-foreground">
                   {subj.name}
@@ -66,7 +68,7 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
         {resource.file_size > 0 && (
           <span>{formatFileSize(resource.file_size)}</span>
         )}
-        <span className="ml-auto">{formatRelativeDate(resource.created_at)}</span>
+        <span className="ml-auto rtl:ml-0 rtl:mr-auto">{formatRelativeDate(resource.created_at)}</span>
       </Link>
     </div>
   );
