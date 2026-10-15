@@ -140,7 +140,7 @@ export default function SearchPage() {
               type="button"
               onClick={() => setQuery('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground rtl:right-auto rtl:left-3"
-              aria-label="Clear search"
+              aria-label={t('search.clear')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -212,7 +212,9 @@ export default function SearchPage() {
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {t('search.resultsFor', { count: filtered.length, query })}
+            {query.trim()
+              ? t('search.resultsFor', { count: filtered.length, query })
+              : t('search.results', { count: filtered.length })}
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((resource) => (

@@ -35,7 +35,7 @@ export function Header() {
             </div>
             <div className="hidden sm:block">
               <span className="text-lg font-bold tracking-tight">FawjHub</span>
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">{t('brand.tagline')}</span>
+              <span className="ms-1.5 text-xs font-normal text-muted-foreground">{t('brand.tagline')}</span>
             </div>
           </Link>
 

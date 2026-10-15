@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useI18n } from '@/lib/i18n';
 
 interface ConfirmDialogState {
   open: boolean;
@@ -23,12 +24,13 @@ interface ConfirmDialogState {
 }
 
 export function useConfirmDialog() {
+  const { t } = useI18n();
   const [state, setState] = useState<ConfirmDialogState>({
     open: false,
     title: '',
     description: '',
-    confirmLabel: 'Confirm',
-    cancelLabel: 'Cancel',
+    confirmLabel: '',
+    cancelLabel: '',
     destructive: false,
     onConfirm: () => {},
   });
@@ -45,12 +47,12 @@ export function useConfirmDialog() {
       open: true,
       title: options.title,
       description: options.description,
-      confirmLabel: options.confirmLabel || 'Confirm',
-      cancelLabel: options.cancelLabel || 'Cancel',
+      confirmLabel: options.confirmLabel || t('common.confirm'),
+      cancelLabel: options.cancelLabel || t('common.cancel'),
       destructive: options.destructive ?? false,
       onConfirm: options.onConfirm,
     });
-  }, []);
+  }, [t]);
 
   const handleConfirm = useCallback(async () => {
     await state.onConfirm();

@@ -82,7 +82,7 @@ export default function HomePage() {
         <div className="space-y-2">
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             {profile?.full_name
-              ? `${t('home.welcomeBack')}, ${profile.full_name.split(' ')[0]}`
+              ? t('home.welcomeBackName', { name: profile.full_name.split(' ')[0] })
               : t('home.welcome')}
           </h1>
           <p className="text-muted-foreground text-sm sm:text-base">

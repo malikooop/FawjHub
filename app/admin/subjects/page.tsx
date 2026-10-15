@@ -15,12 +15,14 @@ import { supabase } from '@/lib/supabase/client';
 import type { Subject } from '@/lib/types';
 import { toast } from 'sonner';
 import { useConfirmDialog } from '@/components/confirm-dialog';
+import { useI18n } from '@/lib/i18n';
 
 const ICON_OPTIONS = ['BookOpen', 'Binary', 'Cpu', 'BarChart3', 'Code', 'Monitor', 'Database', 'FunctionSquare', 'Brain', 'Calculator', 'Network', 'FlaskConical'];
 
 const COLOR_OPTIONS = ['#2563eb', '#0891b2', '#059669', '#d97706', '#dc2626', '#7c3aed', '#db2777', '#4f46e5'];
 
 export default function AdminSubjectsPage() {
+  const { t } = useI18n();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,7 +79,7 @@ export default function AdminSubjectsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name) {
-      toast.error('Name is required');
+      toast.error(t('admin.nameRequired'));
       return;
     }
 
@@ -97,18 +99,18 @@ export default function AdminSubjectsPage() {
     if (editing) {
       const { error } = await supabase.from('subjects').update(payload).eq('id', editing.id);
       if (error) {
-        toast.error('Failed to update: ' + error.message);
+        toast.error(t('admin.failedUpdate', { message: error.message }));
       } else {
-        toast.success('Subject updated');
+        toast.success(t('admin.subjectUpdated'));
         setDialogOpen(false);
         loadSubjects();
       }
     } else {
       const { error } = await supabase.from('subjects').insert(payload);
       if (error) {
-        toast.error('Failed to create: ' + error.message);
+        toast.error(t('admin.failedCreate', { message: error.message }));
       } else {
-        toast.success('Subject created');
+        toast.success(t('admin.subjectCreated'));
         setDialogOpen(false);
         loadSubjects();
       }
@@ -118,44 +120,44 @@ export default function AdminSubjectsPage() {
 
   const handleDelete = (id: string, name: string) => {
     confirm({
-      title: 'Delete Subject',
-      description: `Are you sure you want to delete "${name}"? All resources in this subject will also be deleted. This action cannot be undone.`,
-      confirmLabel: 'Delete',
+      title: t('confirm.deleteSubject'),
+      description: t('confirm.deleteSubjectDesc', { name }),
+      confirmLabel: t('admin.delete'),
       destructive: true,
       onConfirm: async () => {
         const { error } = await supabase.from('subjects').delete().eq('id', id);
         if (error) {
-          toast.error('Failed to delete: ' + error.message);
+          toast.error(t('admin.failedDelete', { message: error.message }));
         } else {
-          toast.success('Subject deleted');
+          toast.success(t('admin.subjectDeleted'));
           setSubjects(subjects.filter((s) => s.id !== id));
         }
       },
     });
   };
 
-  if (loading) return <LoadingState message="Loading subjects..." />;
+  if (loading) return <LoadingState message={t('subjects.loading')} />;
 
   return (
     <div className="space-y-6 animate-fade-in">
       {dialog}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Subjects</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage {subjects.length} subjects.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t('admin.subjects')}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t('admin.manageSubjects', { count: subjects.length })}</p>
         </div>
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" />
-          New Subject
+          {t('admin.newSubject')}
         </Button>
       </div>
 
       {subjects.length === 0 ? (
         <EmptyState
           icon={<BookOpen className="h-6 w-6" />}
-          title="No subjects yet"
-          description="Create your first subject to start organizing resources."
-          action={<Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> New Subject</Button>}
+          title={t('admin.noSubjects')}
+          description={t('admin.noSubjectsDesc')}
+          action={<Button onClick={openCreate} className="gap-2"><Plus className="h-4 w-4" /> {t('admin.newSubject')}</Button>}
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -193,8 +195,8 @@ export default function AdminSubjectsPage() {
                   <p className="text-xs text-muted-foreground line-clamp-2">{subject.description}</p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="rounded bg-secondary px-1.5 py-0.5">S{subject.semester}</span>
-                  <span>/{subject.slug}</span>
+                  <span className="rounded bg-secondary px-1.5 py-0.5">{t('admin.semesterShort', { n: subject.semester })}</span>
+                  <span dir="ltr">/{subject.slug}</span>
                 </div>
               </CardContent>
             </Card>
@@ -206,68 +208,70 @@ export default function AdminSubjectsPage() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editing ? 'Edit Subject' : 'New Subject'}</DialogTitle>
+            <DialogTitle>{editing ? t('admin.editSubject') : t('admin.newSubject')}</DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="subj-name">Name *</Label>
+              <Label htmlFor="subj-name">{t('admin.nameLabel')}</Label>
               <Input
                 id="subj-name"
                 value={form.name}
                 onChange={(e) => {
                   setForm({ ...form, name: e.target.value, slug: editing ? form.slug : generateSlug(e.target.value) });
                 }}
-                placeholder="e.g. Algorithms"
+                placeholder={t('admin.namePlaceholder')}
                 required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subj-slug">Slug</Label>
+              <Label htmlFor="subj-slug">{t('admin.slug')}</Label>
               <Input
                 id="subj-slug"
                 value={form.slug}
                 onChange={(e) => setForm({ ...form, slug: e.target.value })}
                 placeholder="algorithms"
+                dir="ltr"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subj-desc">Description</Label>
+              <Label htmlFor="subj-desc">{t('admin.subjectDesc')}</Label>
               <Textarea
                 id="subj-desc"
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                placeholder="Short subject description..."
+                placeholder={t('admin.subjectDescPlaceholder')}
                 rows={2}
               />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <Label htmlFor="subj-code">Code</Label>
+                <Label htmlFor="subj-code">{t('admin.code')}</Label>
                 <Input
                   id="subj-code"
                   value={form.code}
                   onChange={(e) => setForm({ ...form, code: e.target.value })}
                   placeholder="INF301"
+                  dir="ltr"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subj-sem">Semester</Label>
+                <Label htmlFor="subj-sem">{t('admin.semester')}</Label>
                 <Select value={form.semester} onValueChange={(v) => setForm({ ...form, semester: v })}>
                   <SelectTrigger id="subj-sem">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">S1</SelectItem>
-                    <SelectItem value="2">S2</SelectItem>
+                    <SelectItem value="1">{t('admin.semesterShort', { n: 1 })}</SelectItem>
+                    <SelectItem value="2">{t('admin.semesterShort', { n: 2 })}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="subj-order">Sort Order</Label>
+                <Label htmlFor="subj-order">{t('admin.sortOrder')}</Label>
                 <Input
                   id="subj-order"
                   type="number"
@@ -278,7 +282,7 @@ export default function AdminSubjectsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Color</Label>
+              <Label>{t('admin.color')}</Label>
               <div className="flex flex-wrap gap-2">
                 {COLOR_OPTIONS.map((color) => (
                   <button
@@ -293,7 +297,7 @@ export default function AdminSubjectsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label>Icon</Label>
+              <Label>{t('admin.icon')}</Label>
               <Select value={form.icon} onValueChange={(v) => setForm({ ...form, icon: v })}>
                 <SelectTrigger>
                   <SelectValue />
@@ -308,11 +312,11 @@ export default function AdminSubjectsPage() {
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancel
+                {t('admin.cancel')}
               </Button>
               <Button type="submit" disabled={saving}>
-                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {editing ? 'Save' : 'Create'}
+                {saving && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+                {editing ? t('admin.save') : t('admin.create')}
               </Button>
             </DialogFooter>
           </form>

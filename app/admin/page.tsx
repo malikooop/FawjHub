@@ -13,7 +13,7 @@ import type { Resource } from '@/lib/types';
 import { formatDownloadCount } from '@/lib/format';
 
 export default function AdminDashboardPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [stats, setStats] = useState({ subjects: 0, resources: 0, downloads: 0, published: 0 });
   const [recentUploads, setRecentUploads] = useState<Resource[]>([]);
   const [topDownloaded, setTopDownloaded] = useState<Resource[]>([]);
@@ -97,7 +97,7 @@ export default function AdminDashboardPage() {
               <Download className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{formatDownloadCount(stats.downloads)}</p>
+              <p className="text-2xl font-bold">{formatDownloadCount(stats.downloads, locale)}</p>
               <p className="text-xs text-muted-foreground">{t('home.downloads')}</p>
             </div>
           </CardContent>

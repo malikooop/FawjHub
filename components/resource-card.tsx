@@ -1,9 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import { FileText, Download, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Resource, Subject } from '@/lib/types';
 import { ResourceTypeBadge } from '@/components/resource-type-badge';
 import { BookmarkButton } from '@/components/bookmark-button';
+import { useI18n } from '@/lib/i18n';
 import { formatRelativeDate, formatDownloadCount, formatFileSize } from '@/lib/format';
 
 interface ResourceCardProps {
@@ -16,6 +19,7 @@ interface ResourceCardProps {
 }
 
 export function ResourceCard({ resource, subject, showSubject = false, showBookmark = true, className, typeLabel }: ResourceCardProps) {
+  const { locale } = useI18n();
   const subj = subject || resource.subject;
   const label = typeLabel || resource.resource_type;
 
@@ -63,12 +67,12 @@ export function ResourceCard({ resource, subject, showSubject = false, showBookm
         )}
         <span className="flex items-center gap-1">
           <Download className="h-3 w-3" />
-          {formatDownloadCount(resource.download_count)}
+          {formatDownloadCount(resource.download_count, locale)}
         </span>
         {resource.file_size > 0 && (
-          <span>{formatFileSize(resource.file_size)}</span>
+          <span>{formatFileSize(resource.file_size, locale)}</span>
         )}
-        <span className="ml-auto rtl:ml-0 rtl:mr-auto">{formatRelativeDate(resource.created_at)}</span>
+        <span className="ms-auto">{formatRelativeDate(resource.created_at, locale)}</span>
       </Link>
     </div>
   );

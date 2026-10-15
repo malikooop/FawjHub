@@ -94,7 +94,9 @@ export default function ExamsPage() {
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {t('subjects.resources', { count: filtered.length })}
+            {filtered.length === 1
+              ? t('subjects.resourceSingular', { count: 1 })
+              : t('subjects.resources', { count: filtered.length })}
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((resource) => (

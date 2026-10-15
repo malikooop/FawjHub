@@ -174,14 +174,14 @@ export default function ResourceDetailPage() {
             <Download className="h-3 w-3" />
             {t('resource.downloads')}
           </div>
-          <p className="text-sm font-medium">{formatDownloadCount(resource.download_count)}</p>
+          <p className="text-sm font-medium">{formatDownloadCount(resource.download_count, locale)}</p>
         </div>
         <div className="rounded-lg border bg-card p-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
             <HardDrive className="h-3 w-3" />
             {t('resource.fileSize')}
           </div>
-          <p className="text-sm font-medium">{resource.file_size > 0 ? formatFileSize(resource.file_size) : '—'}</p>
+          <p className="text-sm font-medium">{resource.file_size > 0 ? formatFileSize(resource.file_size, locale) : '—'}</p>
         </div>
       </div>
 

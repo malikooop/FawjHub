@@ -1,22 +1,27 @@
+'use client';
+
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import { Loader2 } from 'lucide-react';
 
-export function LoadingState({ message = 'Loading...', className }: { message?: string; className?: string }) {
+export function LoadingState({ message, className }: { message?: string; className?: string }) {
+  const { t } = useI18n();
   return (
     <div className={cn('flex flex-col items-center justify-center gap-3 py-16', className)}>
       <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="text-sm text-muted-foreground">{message ?? t('common.loading')}</p>
     </div>
   );
 }
 
-export function ErrorState({ message = 'Something went wrong', className }: { message?: string; className?: string }) {
+export function ErrorState({ message, className }: { message?: string; className?: string }) {
+  const { t } = useI18n();
   return (
     <div className={cn('flex flex-col items-center justify-center gap-2 py-16', className)}>
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
         <span className="text-destructive text-xl">!</span>
       </div>
-      <p className="text-sm text-muted-foreground">{message}</p>
+      <p className="text-sm text-muted-foreground">{message ?? t('common.error')}</p>
     </div>
   );
 }

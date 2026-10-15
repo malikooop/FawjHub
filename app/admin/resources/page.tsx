@@ -17,7 +17,7 @@ import { formatRelativeDate, formatDownloadCount, formatFileSize } from '@/lib/f
 import { toast } from 'sonner';
 
 export default function AdminResourcesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [resources, setResources] = useState<Resource[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,9 +63,9 @@ export default function AdminResourcesPage() {
       onConfirm: async () => {
         const { error } = await supabase.from('resources').delete().eq('id', id);
         if (error) {
-          toast.error('Failed to delete resource');
+          toast.error(t('admin.resourceDeleteFailed'));
         } else {
-          toast.success('Resource deleted');
+          toast.success(t('admin.resourceDeleted'));
           setResources(resources.filter((r) => r.id !== id));
         }
       },
@@ -78,7 +78,7 @@ export default function AdminResourcesPage() {
       .update({ published: !resource.published, status: !resource.published ? 'published' : 'draft' })
       .eq('id', resource.id);
     if (error) {
-      toast.error('Failed to update');
+      toast.error(t('admin.updateFailedShort'));
     } else {
       toast.success(resource.published ? t('admin.unpublish') : t('admin.publish'));
       setResources(resources.map((r) => r.id === resource.id ? {
@@ -173,9 +173,9 @@ export default function AdminResourcesPage() {
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <ResourceTypeBadge type={resource.resource_type} label={t(`type.${resource.resource_type}`)} />
                   {resource.subject && <span>{resource.subject.name}</span>}
-                  <span>{formatDownloadCount(resource.download_count)} {t('resource.downloads').toLowerCase()}</span>
-                  {resource.file_size > 0 && <span>{formatFileSize(resource.file_size)}</span>}
-                  <span>{formatRelativeDate(resource.created_at)}</span>
+                  <span>{formatDownloadCount(resource.download_count, locale)} {t('resource.downloads').toLowerCase()}</span>
+                  {resource.file_size > 0 && <span>{formatFileSize(resource.file_size, locale)}</span>}
+                  <span>{formatRelativeDate(resource.created_at, locale)}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">

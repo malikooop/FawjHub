@@ -12,7 +12,8 @@ import { LoadingState, EmptyState, ErrorState } from '@/components/states';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/auth-provider';
 import type { Subject, Resource, ResourceType, Progress } from '@/lib/types';
-import { RESOURCE_TYPE_LABELS, RESOURCE_TYPE_ORDER } from '@/lib/types';
+import { RESOURCE_TYPE_ORDER } from '@/lib/types';
+import { useI18n } from '@/lib/i18n';
 import * as Icons from 'lucide-react';
 
 type SortOption = 'newest' | 'oldest' | 'downloads' | 'title';
@@ -21,6 +22,7 @@ export default function SubjectDetailPage() {
   const { slug } = useParams();
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useI18n();
   const [subject, setSubject] = useState<Subject | null>(null);
   const [resources, setResources] = useState<Resource[]>([]);
   const [progressMap, setProgressMap] = useState<Record<string, boolean>>({});
@@ -105,17 +107,17 @@ export default function SubjectDetailPage() {
   const completedCount = Object.values(progressMap).filter(Boolean).length;
   const progress = resources.length > 0 ? Math.round((completedCount / resources.length) * 100) : 0;
 
-  if (loading) return <LoadingState message="Loading subject..." />;
-  if (error || !subject) return <ErrorState message="Subject not found" />;
+  if (loading) return <LoadingState message={t('subjects.loadingOne')} />;
+  if (error || !subject) return <ErrorState message={t('subjects.notFound')} />;
 
   const Icon = (Icons[subject.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>) ?? Icons.BookOpen;
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Breadcrumb */}
-      <Button variant="ghost" size="sm" onClick={() => router.push('/subjects')} className="gap-1 -ml-2 text-muted-foreground">
-        <ChevronLeft className="h-4 w-4" />
-        Subjects
+      <Button variant="ghost" size="sm" onClick={() => router.push('/subjects')} className="gap-1 -ml-2 text-muted-foreground rtl:ml-0 rtl:-mr-2">
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {t('nav.subjects')}
       </Button>
 
       {/* Subject Header */}
@@ -145,8 +147,8 @@ export default function SubjectDetailPage() {
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="text-muted-foreground">Your progress</span>
-                <span className="font-medium">{completedCount}/{resources.length} completed ({progress}%)</span>
+                <span className="text-muted-foreground">{t('subjects.yourProgress')}</span>
+                <span className="font-medium">{t('subjects.completedLabel', { completed: completedCount, total: resources.length, percent: progress })}</span>
               </div>
               <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
                 <div
@@ -169,7 +171,7 @@ export default function SubjectDetailPage() {
               : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
           }`}
         >
-          All ({resources.length})
+          {t('subjects.all')} ({resources.length})
         </button>
         {RESOURCE_TYPE_ORDER.map((type) => {
           const count = typeCounts[type] || 0;
@@ -184,7 +186,7 @@ export default function SubjectDetailPage() {
                   : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
               }`}
             >
-              {RESOURCE_TYPE_LABELS[type]} ({count})
+              {t(`type.${type}`)} ({count})
             </button>
           );
         })}
@@ -193,18 +195,20 @@ export default function SubjectDetailPage() {
       {/* Sort Controls */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {filteredResources.length} resource{filteredResources.length !== 1 ? 's' : ''}
+          {filteredResources.length === 1
+            ? t('subjects.resourceSingular', { count: 1 })
+            : t('subjects.resources', { count: filteredResources.length })}
         </p>
         <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
           <SelectTrigger className="w-[160px] h-9">
-            <ArrowUpDown className="mr-2 h-3.5 w-3.5" />
+            <ArrowUpDown className="me-2 h-3.5 w-3.5" />
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="newest">Newest first</SelectItem>
-            <SelectItem value="oldest">Oldest first</SelectItem>
-            <SelectItem value="downloads">Most downloaded</SelectItem>
-            <SelectItem value="title">Title (A-Z)</SelectItem>
+            <SelectItem value="newest">{t('subjects.newestFirst')}</SelectItem>
+            <SelectItem value="oldest">{t('subjects.oldestFirst')}</SelectItem>
+            <SelectItem value="downloads">{t('subjects.mostDownloaded')}</SelectItem>
+            <SelectItem value="title">{t('subjects.titleAz')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -213,13 +217,17 @@ export default function SubjectDetailPage() {
       {filteredResources.length === 0 ? (
         <EmptyState
           icon={<FileText className="h-6 w-6" />}
-          title="No resources here yet"
-          description={`No ${activeType !== 'all' ? RESOURCE_TYPE_LABELS[activeType] : ''} resources have been published for this subject yet.`}
+          title={t('subjects.noResourcesHere')}
+          description={
+            activeType !== 'all'
+              ? t('subjects.noResourcesHereDesc', { type: t(`type.${activeType}`) })
+              : t('subjects.noResourcesAllDesc')
+          }
         />
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {filteredResources.map((resource) => (
-            <ResourceCard key={resource.id} resource={resource} />
+            <ResourceCard key={resource.id} resource={resource} typeLabel={t(`type.${resource.resource_type}`)} />
           ))}
         </div>
       )}
