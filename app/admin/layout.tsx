@@ -6,7 +6,7 @@ import { LayoutDashboard, FileText, Upload, BookOpen, ChevronLeft } from 'lucide
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { AdminGuard } from '@/components/admin/admin-guard';
-
+import { MessageSquareText } from 'lucide-react';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { t } = useI18n();
@@ -16,6 +16,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/resources', label: t('admin.resources'), icon: FileText },
     { href: '/admin/upload', label: t('admin.upload'), icon: Upload },
     { href: '/admin/subjects', label: t('admin.subjects'), icon: BookOpen },
+    {
+  href: '/admin/requests',
+  label: t('requests.adminTitle'),
+  icon: MessageSquareText,
+}
   ];
 
   return (

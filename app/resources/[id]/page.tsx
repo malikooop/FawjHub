@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   ChevronLeft, FileText, Download, Calendar, User, HardDrive,
-  CheckCircle2, Circle, ExternalLink
+  CheckCircle2, Circle, ExternalLink, Loader2, RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ResourceTypeBadge } from '@/components/resource-type-badge';
 import { BookmarkButton } from '@/components/bookmark-button';
@@ -18,101 +19,366 @@ import { useI18n } from '@/lib/i18n';
 import type { Resource, Subject } from '@/lib/types';
 import { formatFileSize, formatDate, formatDownloadCount } from '@/lib/format';
 
+const RESOURCES_BUCKET = 'resources';
+const SIGNED_URL_TTL_SECONDS = 3600; // signed URLs expire after 1 hour
+const REFRESH_MS = 50 * 60 * 1000; // refresh before expiry
+const REFRESH_RETRY_MS = 30 * 1000;
+const MAX_REFRESH_FAILURES = 5;
+
+type PreviewStatus = 'idle' | 'loading' | 'ready' | 'error';
+
+/**
+ * Returns the Storage object path (inside the `resources` bucket) for either:
+ * - new records: a direct object path such as `resources/123_abc.pdf`
+ * - older records: a full Supabase Storage URL (public / sign / authenticated)
+ */
+function getResourceObjectPath(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+
+  if (!/^https?:\/\//i.test(raw)) {
+    return raw.replace(/^\/+/, '') || null;
+  }
+
+  try {
+    const { pathname } = new URL(raw);
+    const match = pathname.match(
+      /\/storage\/v1\/object\/(?:public|sign|authenticated)\/resources\/(.+)$/
+    );
+    if (!match) return null;
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+/** Single place where signed URLs are created (preview, new-tab link, download). */
+async function createResourceSignedUrl(
+  fileUrl: string
+): Promise<{ url: string | null; error: string | null }> {
+  const path = getResourceObjectPath(fileUrl);
+  if (!path) {
+    return { url: null, error: 'Could not determine the Storage object path.' };
+  }
+
+  const { data, error } = await supabase.storage
+    .from(RESOURCES_BUCKET)
+    .createSignedUrl(path, SIGNED_URL_TTL_SECONDS);
+
+  if (error || !data?.signedUrl) {
+    return { url: null, error: error?.message ?? 'No signed URL was returned.' };
+  }
+
+  return { url: data.signedUrl, error: null };
+}
+
+async function recordResourceView(resourceId: string, userId: string | null) {
+  try {
+    const { error } = await supabase.from('resource_views').insert({
+      resource_id: resourceId,
+      user_id: userId,
+    });
+    if (error) console.error('Failed to record resource view:', error.message);
+  } catch (err) {
+    console.error('Failed to record resource view:', err);
+  }
+}
+
 export default function ResourceDetailPage() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const { user } = useAuth();
   const { t, locale } = useI18n();
+
   const [resource, setResource] = useState<Resource | null>(null);
   const [subject, setSubject] = useState<Subject | null>(null);
   const [related, setRelated] = useState<Resource[]>([]);
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [signedFileUrl, setSignedFileUrl] = useState<string | null>(null);
+  const [previewStatus, setPreviewStatus] = useState<PreviewStatus>('idle');
+  const [previewAttempt, setPreviewAttempt] = useState(0);
 
-  const recordView = useCallback(async () => {
-    if (!id) return;
-    await supabase.from('resource_views').insert({
-      resource_id: id as string,
-      user_id: user?.id ?? null,
-    });
-  }, [id, user]);
+  const userId = user?.id ?? null;
+  const userIdRef = useRef<string | null>(userId);
+  userIdRef.current = userId;
+  const viewRecordedFor = useRef<string | null>(null);
+  const downloadingRef = useRef(false);
+  const togglingRef = useRef(false);
 
+  const fileUrl = resource?.file_url ?? null;
+
+  // Small helper for messages that have no translation key yet.
+  const msg = (ar: string, en: string) => (String(locale) === 'ar' ? ar : en);
+
+  // Signed URL for preview + "open in new tab" (private bucket).
   useEffect(() => {
-    async function load() {
-      const { data, error: err } = await supabase
-        .from('resources')
-        .select('*, subject:subjects(*)')
-        .eq('id', id as string)
-        .maybeSingle();
+    if (!fileUrl) {
+      setSignedFileUrl(null);
+      setPreviewStatus('idle');
+      return;
+    }
 
-      if (err || !data) {
-        setError(true);
-        setLoading(false);
+    const currentFileUrl: string = fileUrl;
+    let cancelled = false;
+    let refreshing = false;
+    let lastGeneratedAt = 0;
+    let failures = 0;
+    let refreshTimer: ReturnType<typeof setTimeout> | undefined;
+
+    setSignedFileUrl(null);
+    setPreviewStatus('loading');
+
+    function scheduleRefresh(delay: number) {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        void refreshSignedUrl(true);
+      }, delay);
+    }
+
+    function handleFailure(reason: unknown) {
+      failures += 1;
+      console.error('Failed to create signed URL:', reason);
+
+      if (!lastGeneratedAt) {
+        // Initial load failed: show the error state with a manual retry.
+        setPreviewStatus('error');
+        return;
+      }
+      // Background refresh failed: keep the current URL and retry a few times.
+      if (failures < MAX_REFRESH_FAILURES) scheduleRefresh(REFRESH_RETRY_MS);
+    }
+
+    async function refreshSignedUrl(force: boolean) {
+      if (cancelled || refreshing) return;
+
+      if (
+        !force &&
+        lastGeneratedAt &&
+        Date.now() - lastGeneratedAt < REFRESH_MS
+      ) {
         return;
       }
 
-      const res = data as Resource;
-      setResource(res);
-      setSubject(res.subject || null);
+      refreshing = true;
+      try {
+        const result = await createResourceSignedUrl(currentFileUrl);
+        if (cancelled) return;
 
-      const { data: rel } = await supabase
-        .from('resources')
-        .select('*, subject:subjects(*)')
-        .eq('subject_id', res.subject_id)
-        .eq('published', true)
-        .neq('id', res.id)
-        .order('created_at', { ascending: false })
-        .limit(4);
+        if (!result.url) {
+          handleFailure(result.error);
+          return;
+        }
 
-      setRelated(rel as Resource[] || []);
-      setLoading(false);
-      recordView();
+        failures = 0;
+        lastGeneratedAt = Date.now();
+        setSignedFileUrl(result.url);
+        setPreviewStatus('ready');
+        scheduleRefresh(REFRESH_MS);
+      } catch (err) {
+        if (!cancelled) handleFailure(err);
+      } finally {
+        refreshing = false;
+      }
     }
-    load();
-  }, [id, recordView]);
 
+    void refreshSignedUrl(true);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void refreshSignedUrl(false);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fileUrl, previewAttempt]);
+
+  // Load the resource, its subject and related resources.
   useEffect(() => {
-    if (!user || !id) return;
-    supabase
-      .from('progress')
-      .select('completed')
-      .eq('user_id', user.id)
-      .eq('resource_id', id as string)
-      .maybeSingle()
-      .then(({ data }) => {
+    if (!id) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
+    const resourceId: string = id;
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(false);
+
+      try {
+        const { data, error: err } = await supabase
+          .from('resources')
+          .select('*, subject:subjects(*)')
+          .eq('id', resourceId)
+          .maybeSingle();
+
+        if (cancelled) return;
+
+        if (err || !data) {
+          if (err) console.error('Failed to load resource:', err.message);
+          setError(true);
+          return;
+        }
+
+        const res = data as Resource;
+        setResource(res);
+        setSubject(res.subject || null);
+
+        const { data: rel, error: relError } = await supabase
+          .from('resources')
+          .select('*, subject:subjects(*)')
+          .eq('subject_id', res.subject_id)
+          .eq('published', true)
+          .neq('id', res.id)
+          .order('created_at', { ascending: false })
+          .limit(4);
+
+        if (cancelled) return;
+
+        if (relError) console.error('Failed to load related resources:', relError.message);
+        setRelated((rel as Resource[]) || []);
+
+        if (viewRecordedFor.current !== res.id) {
+          viewRecordedFor.current = res.id;
+          void recordResourceView(res.id, userIdRef.current);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Unexpected error while loading resource:', err);
+          setError(true);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  // Completion state for the signed-in user.
+  useEffect(() => {
+    if (!userId || !id) {
+      setCompleted(false);
+      return;
+    }
+
+    const resourceId: string = id;
+    let cancelled = false;
+
+    async function loadProgress() {
+      try {
+        const { data, error: err } = await supabase
+          .from('progress')
+          .select('completed')
+          .eq('user_id', userId)
+          .eq('resource_id', resourceId)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (err) console.error('Failed to load progress:', err.message);
         setCompleted(data?.completed ?? false);
-      });
-  }, [user, id]);
+      } catch (err) {
+        if (!cancelled) console.error('Unexpected progress error:', err);
+      }
+    }
+
+    void loadProgress();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, id]);
 
   const toggleComplete = async () => {
-    if (!user || !resource) return;
-    const newCompleted = !completed;
-    setCompleted(newCompleted);
+    if (!user || !resource || togglingRef.current) return;
 
-    if (newCompleted) {
-      await supabase
-        .from('progress')
-        .upsert({
-          user_id: user.id,
-          resource_id: resource.id,
-          completed: true,
-          completed_at: new Date().toISOString(),
-        }, { onConflict: 'user_id,resource_id' });
-    } else {
-      await supabase
-        .from('progress')
-        .update({ completed: false, completed_at: null })
-        .eq('user_id', user.id)
-        .eq('resource_id', resource.id);
+    togglingRef.current = true;
+    const previous = completed;
+    const next = !previous;
+    setCompleted(next);
+
+    try {
+      const result = next
+        ? await supabase.from('progress').upsert(
+            {
+              user_id: user.id,
+              resource_id: resource.id,
+              completed: true,
+              completed_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id,resource_id' }
+          )
+        : await supabase
+            .from('progress')
+            .update({ completed: false, completed_at: null })
+            .eq('user_id', user.id)
+            .eq('resource_id', resource.id);
+
+      if (result.error) throw result.error;
+    } catch (err) {
+      console.error('Failed to update progress:', err);
+      setCompleted(previous);
+      toast.error(msg('تعذر حفظ التقدم. حاول مرة أخرى.', 'Could not save your progress. Please try again.'));
+    } finally {
+      togglingRef.current = false;
     }
   };
 
   const handleDownload = async () => {
-    if (!resource) return;
-    await supabase.rpc('increment_download_count', { resource_uuid: resource.id });
-    if (resource.file_url) {
-      window.open(resource.file_url, '_blank');
+    if (!resource?.file_url || downloadingRef.current) return;
+
+    downloadingRef.current = true;
+    // Open the tab synchronously so the popup blocker allows it.
+    const newTab = window.open('about:blank', '_blank');
+
+    try {
+      const { url, error: urlError } = await createResourceSignedUrl(resource.file_url);
+
+      if (!url) {
+        newTab?.close();
+        console.error('Failed to create signed URL:', urlError);
+        toast.error(
+          msg(
+            'تعذر فتح الملف. تحقق من صلاحيات التخزين.',
+            'Could not open the file. Please try again or check storage permissions.'
+          )
+        );
+        return;
+      }
+
+      const { error: rpcError } = await supabase.rpc('increment_download_count', {
+        resource_uuid: resource.id,
+      });
+      if (rpcError) console.error('Failed to increment download count:', rpcError.message);
+
+      if (newTab) {
+        newTab.opener = null;
+        newTab.location.href = url;
+      } else {
+        window.location.href = url;
+      }
+    } catch (err) {
+      newTab?.close();
+      console.error('Unexpected download error:', err);
+      toast.error(
+        msg('تعذر فتح الملف. حاول مرة أخرى.', 'Could not open the file. Please try again.')
+      );
+    } finally {
+      downloadingRef.current = false;
     }
   };
 
@@ -219,34 +485,65 @@ export default function ResourceDetailPage() {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold">{t('resource.preview')}</h2>
-            <a
-              href={resource.file_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 text-xs text-primary hover:underline"
-            >
-              {t('resource.openNewTab')}
-              <ExternalLink className="h-3 w-3" />
-            </a>
+            {previewStatus === 'ready' && signedFileUrl && (
+              <a
+                href={signedFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                {t('resource.openNewTab')}
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
           </div>
-          <div className="overflow-hidden rounded-lg border bg-card">
-            <object
-              data={resource.file_url}
-              type="application/pdf"
-              className="h-[500px] w-full"
-            >
-              <div className="flex h-[500px] flex-col items-center justify-center gap-3 p-8 text-center">
-                <FileText className="h-10 w-10 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">
-                  {t('resource.previewUnavailable')}
-                </p>
+
+          {previewStatus === 'ready' && signedFileUrl ? (
+            <div className="overflow-hidden rounded-lg border bg-card">
+              <object
+                data={signedFileUrl}
+                type="application/pdf"
+                className="h-[500px] w-full"
+              >
+                <div className="flex h-[500px] flex-col items-center justify-center gap-3 p-8 text-center">
+                  <FileText className="h-10 w-10 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground">
+                    {t('resource.previewUnavailable')}
+                  </p>
+                  <Button onClick={handleDownload} variant="outline" className="gap-2">
+                    <Download className="h-4 w-4" />
+                    {t('resource.downloadToView')}
+                  </Button>
+                </div>
+              </object>
+            </div>
+          ) : previewStatus === 'error' ? (
+            <div className="flex h-[240px] flex-col items-center justify-center gap-3 rounded-lg border bg-card p-8 text-center">
+              <FileText className="h-10 w-10 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {t('resource.previewUnavailable')}
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  onClick={() => setPreviewAttempt((attempt) => attempt + 1)}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {msg('إعادة المحاولة', 'Retry')}
+                </Button>
                 <Button onClick={handleDownload} variant="outline" className="gap-2">
                   <Download className="h-4 w-4" />
                   {t('resource.downloadToView')}
                 </Button>
               </div>
-            </object>
-          </div>
+            </div>
+          ) : (
+            <div className="flex h-[240px] items-center justify-center gap-2 rounded-lg border bg-card text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {msg('جارٍ تحميل المعاينة…', 'Loading preview…')}
+            </div>
+          )}
         </div>
       )}
 

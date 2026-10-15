@@ -13,38 +13,79 @@ import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { signIn, signUp } = useAuth();
+const { signIn, signUp, requestPasswordReset } = useAuth();
   const { t } = useI18n();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<
+  'signin' | 'signup' | 'forgotPassword'
+>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+ 
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    if (mode === 'forgotPassword') {
+      const { error } = await requestPasswordReset(email);
+
+      if (error) {
+        toast.error(error);
+        return;
+      }
+
+      toast.success(t('auth.resetEmailSent'));
+      setPassword('');
+      setMode('signin');
+      return;
+    }
 
     if (mode === 'signin') {
       const { error } = await signIn(email, password);
+
       if (error) {
         toast.error(error);
-        setLoading(false);
-      } else {
-        toast.success(t('auth.welcomeBack'));
-        router.push('/');
+        return;
       }
-    } else {
-      const { error } = await signUp(email, password, fullName);
-      if (error) {
-        toast.error(error);
-        setLoading(false);
-      } else {
-        toast.success(t('auth.accountCreated'));
-        router.push('/');
-      }
+
+      toast.success(t('auth.welcomeBack'));
+      router.push('/');
+      return;
     }
-  };
+
+    const { error, needsEmailConfirmation } = await signUp(
+      email,
+      password,
+      fullName
+    );
+
+    if (error) {
+      toast.error(error);
+      return;
+    }
+
+    if (needsEmailConfirmation) {
+      toast.info(
+        'Please check your email to confirm your account. / يرجى التحقق من بريدك الإلكتروني لتأكيد حسابك.'
+      );
+
+      setPassword('');
+      setMode('signin');
+      return;
+    }
+
+    toast.success(t('auth.accountCreated'));
+    router.push('/');
+  } catch {
+    toast.error('An unexpected error occurred. Please try again.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
@@ -56,7 +97,11 @@ export default function LoginPage() {
           <div>
             <CardTitle className="text-xl">FawjHub</CardTitle>
             <CardDescription className="mt-1">
-              {mode === 'signin' ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
+              {mode === 'signin'
+  ? t('auth.signInSubtitle')
+  : mode === 'signup'
+    ? t('auth.signUpSubtitle')
+    : t('auth.forgotPasswordSubtitle')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -97,52 +142,88 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('auth.password')}</Label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-9 rtl:pl-3 rtl:pr-9"
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
+           
+{mode !== 'forgotPassword' && (
+  <div className="space-y-2">
+    <Label htmlFor="password">{t('auth.password')}</Label>
+    <div className="relative">
+      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground rtl:left-auto rtl:right-3" />
+      <Input
+        id="password"
+        type="password"
+        placeholder="••••••••"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="pl-9 rtl:pl-3 rtl:pr-9"
+        required
+        minLength={6}
+        disabled={loading}
+      />
+    </div>
+  </div>
+)}
+
+{mode === 'signin' && (
+  <div className="text-end">
+    <button
+      type="button"
+      onClick={() => setMode('forgotPassword')}
+      className="text-sm font-medium text-primary hover:underline"
+    >
+      {t('auth.forgotPassword')}
+    </button>
+  </div>
+)}
+
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
-              {mode === 'signin' ? t('auth.signIn') : t('auth.createAccount')}
+              {mode === 'signin'
+  ? t('auth.signIn')
+  : mode === 'signup'
+    ? t('auth.createAccount')
+    : t('auth.sendResetLink')}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            {mode === 'signin' ? (
-              <>
-                {t('auth.noAccount')}{' '}
-                <button
-                  onClick={() => setMode('signup')}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {t('auth.signUp')}
-                </button>
-              </>
-            ) : (
-              <>
-                {t('auth.haveAccount')}{' '}
-                <button
-                  onClick={() => setMode('signin')}
-                  className="font-medium text-primary hover:underline"
-                >
-                  {t('auth.signIn')}
-                </button>
-              </>
-            )}
-          </div>
+          
+<div className="mt-6 text-center text-sm text-muted-foreground">
+  {mode === 'forgotPassword' ? (
+    <>
+      {t('auth.returnToLogin')}{' '}
+      <button
+        type="button"
+        onClick={() => setMode('signin')}
+        className="font-medium text-primary hover:underline"
+      >
+        {t('auth.signIn')}
+      </button>
+    </>
+  ) : mode === 'signin' ? (
+    <>
+      {t('auth.noAccount')}{' '}
+      <button
+        type="button"
+        onClick={() => setMode('signup')}
+        className="font-medium text-primary hover:underline"
+      >
+        {t('auth.signUp')}
+      </button>
+    </>
+  ) : (
+    <>
+      {t('auth.haveAccount')}{' '}
+      <button
+        type="button"
+        onClick={() => setMode('signin')}
+        className="font-medium text-primary hover:underline"
+      >
+        {t('auth.signIn')}
+      </button>
+    </>
+  )}
+</div>
+
         </CardContent>
       </Card>
     </div>

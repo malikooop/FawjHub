@@ -20,6 +20,67 @@ import { formatFileSize } from '@/lib/format';
 import { validateFile, sanitizeFileName, ALLOWED_EXTENSIONS } from '@/lib/file-validation';
 import { toast } from 'sonner';
 
+const RESOURCES_BUCKET = 'resources';
+
+/**
+ * Returns the Storage object path (inside the `resources` bucket) for either:
+ * - a direct object path such as `resources/123_abc.pdf`
+ * - an older full Storage URL (public / sign / authenticated)
+ */
+function getResourceObjectPath(value?: string | null): string | null {
+  const raw = value?.trim();
+  if (!raw) return null;
+
+  if (!/^https?:\/\//i.test(raw)) {
+    return raw.replace(/^\/+/, '') || null;
+  }
+
+  try {
+    const { pathname } = new URL(raw);
+    const match = pathname.match(
+      /\/storage\/v1\/object\/(?:public|sign|authenticated)\/resources\/(.+)$/
+    );
+    if (!match) return null;
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Removes a Storage object. Never throws. Returns true only if an object
+ * was actually removed.
+ */
+async function deleteUploadedFile(fileUrl: string): Promise<boolean> {
+  const path = getResourceObjectPath(fileUrl);
+
+  if (!path) {
+    console.error('Could not determine the Storage object path for cleanup.');
+    return false;
+  }
+
+  try {
+    const { data, error } = await supabase.storage
+      .from(RESOURCES_BUCKET)
+      .remove([path]);
+
+    if (error) {
+      console.error('Failed to delete Storage object:', error.message);
+      return false;
+    }
+
+    if (!data || data.length === 0) {
+      console.error('Storage object was not deleted (not found or not permitted):', path);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Unexpected error while deleting Storage object:', err);
+    return false;
+  }
+}
+
 export default function AdminUploadPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -34,6 +95,12 @@ export default function AdminUploadPage() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [originalFile, setOriginalFile] = useState<{
+    file_url: string;
+    file_name: string;
+    file_size: number;
+    file_type: string;
+  } | null>(null);
 
   const [form, setForm] = useState({
     title: '',
@@ -41,7 +108,7 @@ export default function AdminUploadPage() {
     subject_id: '',
     resource_type: 'cours' as ResourceType,
     semester: '1',
-    academic_year: '2024-2025',
+    academic_year: '2026-2027',
     teacher: '',
     file_url: '',
     file_name: '',
@@ -51,41 +118,100 @@ export default function AdminUploadPage() {
     is_important: false,
   });
 
+  // Small helper for messages that have no translation key yet.
+  const msg = (ar: string, en: string) => (String(locale) === 'ar' ? ar : en);
+
   useEffect(() => {
+    let cancelled = false;
+
     async function load() {
-      const { data: subs } = await supabase.from('subjects').select('*').order('sort_order');
-      setSubjects(subs as Subject[] || []);
-
-      if (editId) {
-        const { data: res } = await supabase
-          .from('resources')
+      try {
+        const { data: subs, error: subsError } = await supabase
+          .from('subjects')
           .select('*')
-          .eq('id', editId)
-          .maybeSingle();
+          .order('sort_order');
 
-        if (res) {
-          const r = res as Resource;
-          setForm({
-            title: r.title || '',
-            description: r.description || '',
-            subject_id: r.subject_id || '',
-            resource_type: r.resource_type,
-            semester: String(r.semester || 1),
-            academic_year: r.academic_year || '',
-            teacher: r.teacher || '',
-            file_url: r.file_url || '',
-            file_name: r.file_name || '',
-            file_size: r.file_size || 0,
-            file_type: r.file_type || 'application/pdf',
-            published: r.published,
-            is_important: r.is_important,
-          });
+        if (cancelled) return;
+
+        if (subsError) {
+          console.error('Failed to load subjects:', subsError.message);
+          toast.error(msg('تعذر تحميل المواد.', 'Could not load subjects.'));
         }
+        setSubjects((subs as Subject[]) || []);
+
+        if (editId) {
+          const { data: res, error: resError } = await supabase
+            .from('resources')
+            .select('*')
+            .eq('id', editId)
+            .maybeSingle();
+
+          if (cancelled) return;
+
+          if (resError || !res) {
+            if (resError) console.error('Failed to load resource:', resError.message);
+            toast.error(msg('تعذر تحميل المورد للتعديل.', 'Could not load the resource for editing.'));
+          } else {
+            const r = res as Resource;
+            setOriginalFile({
+              file_url: r.file_url || '',
+              file_name: r.file_name || '',
+              file_size: r.file_size || 0,
+              file_type: r.file_type || 'application/pdf',
+            });
+            setForm({
+              title: r.title || '',
+              description: r.description || '',
+              subject_id: r.subject_id || '',
+              resource_type: r.resource_type,
+              semester: String(r.semester || 1),
+              academic_year: r.academic_year || '',
+              teacher: r.teacher || '',
+              file_url: r.file_url || '',
+              file_name: r.file_name || '',
+              file_size: r.file_size || 0,
+              file_type: r.file_type || 'application/pdf',
+              published: r.published,
+              is_important: r.is_important,
+            });
+          }
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error('Unexpected error while loading the form:', err);
+          toast.error(msg('حدث خطأ أثناء تحميل النموذج.', 'An error occurred while loading the form.'));
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
-    load();
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editId]);
+
+  // Puts the file-related form fields back to the original file (edit mode)
+  // or to an empty state (create mode).
+  const restoreBaselineFile = () => {
+    if (editId && originalFile) {
+      setForm((prev) => ({
+        ...prev,
+        ...originalFile,
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        file_name: '',
+        file_size: 0,
+        file_url: '',
+        file_type: 'application/pdf',
+      }));
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -95,6 +221,9 @@ export default function AdminUploadPage() {
     if (!validation.valid) {
       setFileError(validation.error || t('admin.invalidFile'));
       setSelectedFile(null);
+      // Do not keep metadata of a previously selected file.
+      restoreBaselineFile();
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
     }
 
@@ -102,71 +231,62 @@ export default function AdminUploadPage() {
     setSelectedFile(file);
     setForm((prev) => ({
       ...prev,
+      title: prev.title || file.name.replace(/\.[^/.]+$/, ''),
       file_name: file.name,
       file_size: file.size,
       file_type: file.type || 'application/pdf',
     }));
-
-    if (!form.title) {
-      setForm((prev) => ({ ...prev, title: file.name.replace(/\.[^/.]+$/, '') }));
-    }
   };
 
   const clearFile = () => {
     setSelectedFile(null);
     setFileError(null);
-    setForm((p) => ({ ...p, file_name: '', file_size: 0, file_url: '' }));
-    if (fileInputRef.current) fileInputRef.current.value = '';
+    restoreBaselineFile();
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
-  const uploadFile = async (): Promise<string | null> => {
-    if (!selectedFile) return form.file_url || null;
+  // Uploads the selected file. Returns the Storage object path, or null on failure.
+  const uploadFile = async (file: File): Promise<string | null> => {
     setUploadProgress(5);
 
-    const safeName = sanitizeFileName(selectedFile.name);
-    const ext = safeName.substring(safeName.lastIndexOf('.'));
+    const safeName = sanitizeFileName(file.name);
+    const dotIndex = safeName.lastIndexOf('.');
+    const ext = dotIndex >= 0 ? safeName.substring(dotIndex) : '';
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+    // Existing convention: object lives under the `resources` folder of the `resources` bucket.
     const filePath = `resources/${fileName}`;
 
     setUploadProgress(20);
 
-    const { error } = await supabase.storage
-      .from('resources')
-      .upload(filePath, selectedFile, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (error) {
-      setUploadProgress(0);
-      toast.error(t('admin.fileUploadFailed', { message: error.message }));
-      return null;
-    }
-
-    setUploadProgress(80);
-
-    const { data: urlData } = supabase.storage
-      .from('resources')
-      .getPublicUrl(filePath);
-
-    setUploadProgress(100);
-    return urlData.publicUrl;
-  };
-
-  const deleteUploadedFile = async (fileUrl: string) => {
     try {
-      const url = new URL(fileUrl);
-      const pathMatch = url.pathname.match(/\/storage\/v1\/object\/public\/resources\/(.+)$/);
-      if (pathMatch) {
-        await supabase.storage.from('resources').remove([pathMatch[1]]);
+      const { error } = await supabase.storage
+        .from(RESOURCES_BUCKET)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) {
+        toast.error(t('admin.fileUploadFailed', { message: error.message }));
+        return null;
       }
-    } catch {
-      // URL parsing failed — nothing to clean up
+
+      setUploadProgress(100);
+      return filePath;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('Unexpected upload error:', err);
+      toast.error(t('admin.fileUploadFailed', { message }));
+      return null;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
 
     if (!form.title.trim()) {
       toast.error(t('admin.titleRequired'));
@@ -176,66 +296,138 @@ export default function AdminUploadPage() {
       toast.error(t('admin.subjectRequired'));
       return;
     }
+    if (editId && !originalFile) {
+      // The record failed to load; saving would overwrite it with blank data.
+      toast.error(msg('تعذر تحميل المورد، لا يمكن الحفظ.', 'The resource could not be loaded, so it cannot be saved.'));
+      return;
+    }
+// A new resource must have an actual file selected.
+if (!editId && !selectedFile) {
+  toast.error(
+    msg(
+      'يرجى اختيار ملف قبل إنشاء المورد.',
+      'Please select a file before creating a resource.'
+    )
+  );
+  return;
+}
 
+// Never publish a resource without an associated file.
+if (
+  form.published &&
+  !selectedFile &&
+  !form.file_url.trim()
+) {
+  toast.error(
+    msg(
+      'لا يمكن نشر مورد دون ملف مرتبط به.',
+      'A resource cannot be published without an attached file.'
+    )
+  );
+  return;
+}
     setSaving(true);
 
-    let fileUrl = form.file_url;
-    let fileWasUploaded = false;
+    // In edit mode, the file currently stored in the database.
+    const previousFileUrl = editId ? originalFile?.file_url ?? '' : '';
+    let newObjectPath: string | null = null;
+    let saved = false;
 
-    // Step 1: Upload file first if a new file is selected
-    if (selectedFile) {
-      const uploadedUrl = await uploadFile();
-      if (!uploadedUrl) {
-        setSaving(false);
-        setUploadProgress(0);
-        return; // Error already shown
+    try {
+      // Step 1: upload the new file first (if one was selected).
+      if (selectedFile) {
+        newObjectPath = await uploadFile(selectedFile);
+        if (!newObjectPath) return; // Error already shown.
       }
-      fileUrl = uploadedUrl;
-      fileWasUploaded = true;
-    }
 
-    setUploadProgress(0);
+      const fileUrl = newObjectPath ?? form.file_url;
 
-    // Step 2: Create/update the database record
-    const payload = {
-      title: form.title.trim(),
-      description: form.description.trim(),
-      subject_id: form.subject_id,
-      resource_type: form.resource_type,
-      semester: parseInt(form.semester),
-      academic_year: form.academic_year.trim(),
-      teacher: form.teacher.trim(),
-      file_url: fileUrl,
-      file_name: form.file_name,
-      file_size: form.file_size,
-      file_type: form.file_type,
-      published: form.published,
-      is_important: form.is_important,
-      uploaded_by: user?.id ?? null,
-      status: form.published ? 'published' : 'draft',
-    };
+      // Step 2: create/update the database record.
+      const payload = {
+        title: form.title.trim(),
+        description: form.description.trim(),
+        subject_id: form.subject_id,
+        resource_type: form.resource_type,
+        semester: Number.parseInt(form.semester, 10) || 1,
+        academic_year: form.academic_year.trim(),
+        teacher: form.teacher.trim(),
+        file_url: fileUrl,
+        file_name: form.file_name,
+        file_size: form.file_size,
+        file_type: form.file_type,
+        published: form.published,
+        is_important: form.is_important,
+      
+        status: form.published ? 'published' : 'draft',
+      };
 
-    if (editId) {
-      const { error } = await supabase.from('resources').update(payload).eq('id', editId);
-      if (error) {
-        toast.error(t('admin.updateFailed', { message: error.message }));
-        if (fileWasUploaded && fileUrl) await deleteUploadedFile(fileUrl);
-      } else {
+     if (editId) {
+  const { data: updatedResource, error } = await supabase
+    .from('resources')
+    .update(payload)
+    .eq('id', editId)
+    .select('id')
+    .maybeSingle();
+
+  if (error || !updatedResource) {
+    const message =
+      error?.message ??
+      msg(
+        'لم يتم تحديث المورد. تحقق من صلاحيات المسؤول ثم أعد المحاولة.',
+        'No resource was updated. Check administrator permissions and try again.'
+      );
+
+    toast.error(t('admin.updateFailed', { message }));
+    return;
+  }
+
+  saved = true;
+
+        // Remove the replaced file only after the database now points to the new one.
+        if (newObjectPath && previousFileUrl && previousFileUrl !== newObjectPath) {
+          const removed = await deleteUploadedFile(previousFileUrl);
+          if (!removed) {
+            console.error('The previous file could not be removed and may be orphaned:', previousFileUrl);
+          }
+        }
+
         toast.success(t('admin.resourceUpdated'));
         router.push('/admin/resources');
-      }
-    } else {
-      const { error } = await supabase.from('resources').insert(payload);
-      if (error) {
-        toast.error(t('admin.createFailed', { message: error.message }));
-        if (fileWasUploaded && fileUrl) await deleteUploadedFile(fileUrl);
       } else {
+        const { error } = await supabase
+  .from('resources')
+  .insert({
+    ...payload,
+    uploaded_by: user?.id ?? null,
+  });
+        if (error) {
+          toast.error(t('admin.createFailed', { message: error.message }));
+          return;
+        }
+
+        saved = true;
         toast.success(t('admin.resourceUploaded'));
         router.push('/admin/resources');
       }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('Unexpected error while saving the resource:', err);
+      toast.error(
+        editId
+          ? t('admin.updateFailed', { message })
+          : t('admin.createFailed', { message })
+      );
+    } finally {
+      // Any newly uploaded object that was not saved to the database is orphaned: remove it.
+      if (newObjectPath && !saved) {
+        const removed = await deleteUploadedFile(newObjectPath);
+        if (!removed) {
+          console.error('The uploaded file could not be cleaned up and may be orphaned:', newObjectPath);
+        }
+      }
+      setUploadProgress(0);
+      setSaving(false);
     }
-
-    setSaving(false);
   };
 
   if (loading) return <LoadingState message={t('admin.loadingForm')} />;
@@ -396,7 +588,7 @@ export default function AdminUploadPage() {
                   id="year"
                   value={form.academic_year}
                   onChange={(e) => setForm({ ...form, academic_year: e.target.value })}
-                  placeholder="2024-2025"
+                  placeholder="2026-2027"
                 />
               </div>
 

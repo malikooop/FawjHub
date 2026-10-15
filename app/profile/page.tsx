@@ -11,14 +11,36 @@ import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/components/providers/auth-provider';
 import { useI18n } from '@/lib/i18n';
 import type { Progress as ProgressType, ResourceView, Subject } from '@/lib/types';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const { user, profile, loading: authLoading, signOut } = useAuth();
+ const {
+  user,
+  profile,
+  loading: authLoading,
+  signOutWithResult,
+} = useAuth();
+
   const { t } = useI18n();
   const [progressItems, setProgressItems] = useState<ProgressType[]>([]);
   const [recentViews, setRecentViews] = useState<ResourceView[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [loading, setLoading] = useState(true);
+    const handleSignOut = async () => {
+    try {
+      const { error } = await signOutWithResult();
+
+      if (error) {
+        toast.error(
+          error === 'unexpected_error'
+            ? 'Unable to sign out. Please try again.'
+            : error
+        );
+      }
+    } catch {
+      toast.error('Unable to sign out. Please try again.');
+    }
+  };
 
   useEffect(() => {
     if (!user) {
@@ -99,9 +121,13 @@ export default function ProfilePage() {
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={() => signOut()}>
-          {t('nav.signout')}
-        </Button>
+        <Button
+  variant="outline"
+  size="sm"
+  onClick={() => void handleSignOut()}
+>
+  {t('nav.signout')}
+</Button>
       </div>
 
       {/* Stats Cards */}
