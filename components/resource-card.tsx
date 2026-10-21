@@ -18,62 +18,179 @@ interface ResourceCardProps {
   typeLabel?: string;
 }
 
-export function ResourceCard({ resource, subject, showSubject = false, showBookmark = true, className, typeLabel }: ResourceCardProps) {
+/* ------------------------------------------------------------------ */
+/* Presentation-only helper: file format (PDF, DOCX...)                */
+/* Reads optional file fields defensively. Returns null when the       */
+/* record does not expose a recognizable format, so nothing is shown.  */
+/* ------------------------------------------------------------------ */
+
+const KNOWN_FORMATS = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
+
+function getFileFormat(resource: Resource): string | null {
+  const record = resource as unknown as Record<string, unknown>;
+  const candidates = [
+    record.file_name,
+    record.file_path,
+    record.file_url,
+    record.file_type,
+  ];
+
+  for (const value of candidates) {
+    if (typeof value !== 'string' || !value) continue;
+
+    const clean = value.split(/[?#]/)[0].toLowerCase();
+    const ext = clean.includes('.') ? clean.split('.').pop() : clean;
+
+    if (ext && KNOWN_FORMATS.includes(ext)) return ext.toUpperCase();
+  }
+
+  return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Presentation-only helper: Arabic subject display names              */
+/* Keyed by the real subject slug. Mirrors the homepage mapping.       */
+/* Stored subject records are never modified.                          */
+/* ------------------------------------------------------------------ */
+
+const SUBJECT_NAMES_AR: Record<string, string> = {
+  'information-systems': 'نظم المعلومات',
+  'computer-architecture': 'معمارية الحاسوب',
+  'probability-statistics-1': 'الاحتمالات والإحصاء 1',
+  'object-oriented-programming-1': 'البرمجة كائنية التوجه 1',
+  'algorithms-data-structures-3': 'الخوارزميات وهياكل البيانات 3',
+  'project-management': 'إدارة المشاريع',
+  'numerical-methods': 'الطرق العددية',
+};
+
+function getSubjectDisplayName(
+  subject: Subject | null | undefined,
+  locale: string
+): string | null {
+  if (!subject) return null;
+
+  const record = subject as unknown as Record<string, unknown>;
+  const storedName = typeof record.name === 'string' ? record.name : '';
+  const slug = typeof record.slug === 'string' ? record.slug : '';
+
+  if (locale === 'ar' && slug && SUBJECT_NAMES_AR[slug]) {
+    return SUBJECT_NAMES_AR[slug];
+  }
+
+  return storedName || null;
+}
+
+export function ResourceCard({
+  resource,
+  subject,
+  showSubject = false,
+  showBookmark = true,
+  className,
+  typeLabel,
+}: ResourceCardProps) {
   const { locale } = useI18n();
   const subj = subject || resource.subject;
+  const subjectName = getSubjectDisplayName(subj, locale);
   const label = typeLabel || resource.resource_type;
+  const format = getFileFormat(resource);
+  const hasDownloads = typeof resource.download_count === 'number';
+  const hasFileSize = resource.file_size > 0;
 
   return (
-    <div
+    <article
       className={cn(
-        'group flex flex-col gap-3 rounded-lg border bg-card p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30',
+        'group relative flex items-start gap-3.5 rounded-lg border border-border bg-card p-4',
+        'shadow-[0_1px_2px_rgba(16,40,70,0.06)]',
+        'transition-[border-color,box-shadow] duration-base ease-brand',
+        'hover:border-primary/40 hover:shadow-[0_4px_12px_rgba(16,40,70,0.08)]',
         className
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <Link href={`/resources/${resource.id}`} className="flex items-start gap-3 min-w-0 flex-1">
-          <div className="mt-0.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-            <FileText className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-              {resource.title}
-            </h3>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <ResourceTypeBadge type={resource.resource_type} label={label} />
-              {showSubject && subj && (
-                <span className="text-xs text-muted-foreground">
-                  {subj.name}
-                </span>
-              )}
-            </div>
-          </div>
-        </Link>
-        {showBookmark && <BookmarkButton resourceId={resource.id} />}
-      </div>
-
-      {resource.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2">
-          {resource.description}
-        </p>
-      )}
-
-      <Link href={`/resources/${resource.id}`} className="flex items-center gap-3 text-xs text-muted-foreground">
-        {resource.academic_year && (
-          <span className="flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {resource.academic_year}
+      {/* Document block: file format only when the record supports it */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          'flex shrink-0 flex-col items-center justify-center rounded-md bg-accent text-primary dark:text-blue-300',
+          format ? 'h-12 w-11 gap-0.5' : 'h-10 w-10'
+        )}
+      >
+        <FileText className="h-5 w-5" />
+        {format && (
+          <span className="ltr-isolate text-[10px] font-bold leading-none tracking-wide">
+            {format}
           </span>
         )}
-        <span className="flex items-center gap-1">
-          <Download className="h-3 w-3" />
-          {formatDownloadCount(resource.download_count, locale)}
-        </span>
-        {resource.file_size > 0 && (
-          <span>{formatFileSize(resource.file_size, locale)}</span>
+      </div>
+
+      <div className="min-w-0 flex-1 space-y-2">
+        {/* Title: the stretched link makes the whole card one click target */}
+        <h3
+          dir="auto"
+          title={resource.title}
+          className="line-clamp-2 break-words text-start text-[15px] font-semibold leading-snug text-foreground transition-colors duration-fast ease-brand group-hover:text-primary"
+        >
+          <Link
+            href={`/resources/${resource.id}`}
+            className="after:absolute after:inset-0 after:rounded-lg focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
+          >
+            {resource.title}
+          </Link>
+        </h3>
+
+        {/* Classification: resource type, then subject */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <ResourceTypeBadge type={resource.resource_type} label={label} />
+          {showSubject && subjectName && (
+            <span
+              dir="auto"
+              title={subjectName}
+              className="min-w-0 max-w-full truncate text-start text-xs font-medium text-muted-foreground"
+            >
+              {subjectName}
+            </span>
+          )}
+        </div>
+
+        {resource.description && (
+          <p
+            dir="auto"
+            className="line-clamp-1 break-words text-start text-[13px] leading-5 text-muted-foreground sm:line-clamp-2"
+          >
+            {resource.description}
+          </p>
         )}
-        <span className="ms-auto">{formatRelativeDate(resource.created_at, locale)}</span>
-      </Link>
-    </div>
+
+        {/* Secondary metadata: each item only when present */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-0.5 text-xs text-muted-foreground">
+          {resource.academic_year && (
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <bdi>{resource.academic_year}</bdi>
+            </span>
+          )}
+          {hasDownloads && (
+            <span className="flex items-center gap-1">
+              <Download className="h-3 w-3 shrink-0" aria-hidden="true" />
+              <bdi>{formatDownloadCount(resource.download_count, locale)}</bdi>
+            </span>
+          )}
+          {hasFileSize && (
+            <bdi>{formatFileSize(resource.file_size, locale)}</bdi>
+          )}
+          {resource.created_at && (
+            <span className="ms-auto">
+              {formatRelativeDate(resource.created_at, locale)}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Bookmark stays independent and sits above the stretched link */}
+      {showBookmark && (
+        <div className="relative z-10 -me-1 -mt-1 shrink-0">
+          <BookmarkButton resourceId={resource.id} />
+        </div>
+      )}
+    </article>
   );
 }

@@ -4,20 +4,27 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 22% 10%;
+    /* Surfaces: pale blue-gray page, white cards layered on top */
+    --background: 214 47% 97%;
+    --foreground: 212 55% 17%;
     --card: 0 0% 100%;
-    --card-foreground: 222 22% 10%;
+    --card-foreground: 212 55% 17%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 10%;
+    --popover-foreground: 212 55% 17%;
+
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
+
+    --secondary: 214 40% 94%;
+    --secondary-foreground: 212 55% 17%;
+    --muted: 214 40% 94%;
     --muted-foreground: 215 16% 47%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
+
+    /* Accent = pale blue interaction surface (hover / selected / focus rows).
+       The brand cyan lives in --brand-cyan below. */
+    --accent: 219 91% 96%;
+    --accent-foreground: 212 55% 17%;
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
     --border: 214 32% 91%;
@@ -33,26 +40,37 @@
     --chart-4: 38 92% 50%;
     --chart-5: 0 84% 60%;
     --radius: 0.625rem;
+
+    /* Brand navy surfaces (hero, supporting panel, footer) */
+    --navy-deep: 214 63% 12%;         /* #0B1B30 */
+    --navy: 213 63% 17%;              /* #102846 */
+    --navy-foreground: 210 40% 98%;   /* text on navy */
+    --navy-muted: 213 31% 71%;        /* #9FB3CC, secondary text on navy */
+    --brand-cyan: 198 93% 60%;        /* #38BDF8, use on dark/navy surfaces only */
   }
   .dark {
-    --background: 222 22% 7%;
-    --foreground: 210 40% 98%;
-    --card: 222 22% 10%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 22% 10%;
-    --popover-foreground: 210 40% 98%;
+    --background: 215 63% 7%;         /* #07111F */
+    --foreground: 215 51% 94%;        /* #E6EDF7 */
+    --card: 214 60% 14%;              /* #0E2038 */
+    --card-foreground: 215 51% 94%;
+    --popover: 214 60% 14%;
+    --popover-foreground: 215 51% 94%;
+
     --primary: 221 83% 53%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
+
+    --secondary: 214 58% 18%;         /* #132A47 */
+    --secondary-foreground: 215 51% 94%;
+    --muted: 214 58% 18%;
     --muted-foreground: 215 20% 65%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
+
+    --accent: 214 52% 22%;
+    --accent-foreground: 215 51% 94%;
+
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
+    --border: 215 45% 22%;            /* #1E3350 */
+    --input: 215 45% 22%;
     --ring: 221 83% 53%;
     --success: 142 71% 45%;
     --success-foreground: 0 0% 100%;
@@ -63,6 +81,12 @@
     --chart-3: 142 71% 45%;
     --chart-4: 38 92% 50%;
     --chart-5: 0 84% 60%;
+
+    --navy-deep: 214 63% 12%;
+    --navy: 213 63% 17%;
+    --navy-foreground: 210 40% 98%;
+    --navy-muted: 213 31% 71%;
+    --brand-cyan: 198 93% 60%;
   }
 }
 
@@ -86,6 +110,35 @@
   [dir="ltr"] body {
     font-family: var(--font-inter), system-ui, sans-serif;
   }
+
+  /* Keyboard focus baseline for otherwise unstyled interactive elements.
+     :where() keeps specificity at zero, so component-level focus styles
+     (focus-visible:outline-none + ring) always win and never double up. */
+  :where(a, button, summary, [role="button"], [role="link"]):focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Respect the user's reduced-motion preference. Durations are near-zero
+     (not "none") so Radix animationend-based unmounting still fires. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    /* Keep loading spinners running: they are functional feedback. */
+    .animate-spin {
+      animation-duration: 1s !important;
+      animation-iteration-count: infinite !important;
+    }
+  }
 }
 
 @layer utilities {
@@ -98,5 +151,12 @@
   }
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* Isolate LTR content (subject codes, file extensions, file names)
+     inside RTL text so it doesn't get reordered. */
+  .ltr-isolate {
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 }

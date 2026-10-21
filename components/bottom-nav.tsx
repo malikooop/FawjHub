@@ -27,31 +27,62 @@ export function BottomNav() {
   if (pathname.startsWith('/login') || pathname.startsWith('/admin/')) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 md:hidden">
-      <div className="flex items-center justify-around px-1 py-1">
+    <nav
+      className={cn(
+        'fixed inset-x-0 bottom-0 z-50 md:hidden',
+        'border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85',
+        'pb-[env(safe-area-inset-bottom)]'
+      )}
+    >
+      <ul className="flex items-stretch">
         {items.map((item) => {
           const Icon = item.icon;
           const isActive =
             item.href === '/'
               ? pathname === '/'
               : pathname.startsWith(item.href);
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[0.65rem] font-medium transition-colors',
-                isActive
-                  ? 'text-primary'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon className="h-5 w-5" />
-              <span>{item.label}</span>
-            </Link>
+            <li key={item.href} className="min-w-0 flex-1">
+              <Link
+                href={item.href}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'relative flex h-14 w-full min-w-0 flex-col items-center justify-center gap-1 px-1',
+                  'transition-colors duration-fast ease-brand',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+                  isActive
+                    ? 'text-primary dark:text-blue-300'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {/* Active marker: a shape cue, so state never depends on color alone */}
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'absolute left-1/2 top-0 h-0.5 w-8 -translate-x-1/2 rounded-full bg-primary dark:bg-blue-300',
+                    'transition-opacity duration-fast ease-brand',
+                    isActive ? 'opacity-100' : 'opacity-0'
+                  )}
+                />
+                <Icon
+                  aria-hidden="true"
+                  className="h-5 w-5 shrink-0"
+                  strokeWidth={isActive ? 2.25 : 1.75}
+                />
+                <span
+                  className={cn(
+                    'block max-w-full truncate text-[11px] leading-none',
+                    isActive ? 'font-semibold' : 'font-medium'
+                  )}
+                >
+                  {item.label}
+                </span>
+              </Link>
+            </li>
           );
         })}
-      </div>
+      </ul>
     </nav>
   );
 }

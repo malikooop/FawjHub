@@ -1,3 +1,4 @@
+
 import type { Config } from 'tailwindcss';
 
 const config: Config = {
@@ -10,7 +11,12 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'var(--font-cairo)', 'system-ui', 'sans-serif'],
+        sans: [
+          'var(--font-inter)',
+          'var(--font-cairo)',
+          'system-ui',
+          'sans-serif',
+        ],
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
@@ -61,6 +67,13 @@ const config: Config = {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
         },
+        navy: {
+          DEFAULT: 'hsl(var(--navy))',
+          deep: 'hsl(var(--navy-deep))',
+          foreground: 'hsl(var(--navy-foreground))',
+          muted: 'hsl(var(--navy-muted))',
+        },
+        'brand-cyan': 'hsl(var(--brand-cyan))',
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
@@ -71,6 +84,14 @@ const config: Config = {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+      },
+      transitionDuration: {
+        fast: '120ms',
+        base: '200ms',
+        slow: '320ms',
+      },
+      transitionTimingFunction: {
+        brand: 'cubic-bezier(0.2, 0, 0, 1)',
       },
       keyframes: {
         'accordion-down': {
@@ -93,11 +114,14 @@ const config: Config = {
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
-        'slide-up': 'slide-up 0.3s ease-out',
+        'fade-in':
+          'fade-in 0.32s cubic-bezier(0.2, 0, 0, 1) backwards',
+        'slide-up':
+          'slide-up 0.32s cubic-bezier(0.2, 0, 0, 1) backwards',
       },
     },
   },
   plugins: [require('tailwindcss-animate')],
 };
+
 export default config;
