@@ -215,11 +215,14 @@ setProgressData(
   const firstName = profile?.full_name?.trim().split(/\s+/)[0];
 
   return (
-    <main className="mx-auto w-full max-w-7xl space-y-10 py-2 sm:space-y-12">
+    <main className="mx-auto w-full max-w-7xl space-y-12 py-2 sm:space-y-16">
       {/* Welcome and search */}
-      <section className="space-y-5 border-b border-border pb-7 sm:pb-9">
-        <div className="max-w-3xl space-y-3">
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+      <section className="relative overflow-hidden rounded-2xl border border-border bg-card px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+        <div className="pointer-events-none absolute -end-16 -top-20 h-48 w-48 rounded-full border-[24px] border-primary/5" />
+        <div className="relative space-y-6">
+          <div className="max-w-3xl space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Nibras / نبراس</p>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             {firstName
               ? t('home.welcomeBackName', { name: firstName })
               : t('home.welcome')}
@@ -233,7 +236,7 @@ setProgressData(
         <form
           onSubmit={handleSearch}
           role="search"
-          className="flex max-w-3xl flex-col gap-2 sm:flex-row"
+            className="flex max-w-4xl flex-col gap-2 sm:flex-row"
         >
           <div className="relative min-w-0 flex-1">
             <label htmlFor="home-search" className="sr-only">
@@ -263,6 +266,7 @@ setProgressData(
             />
           </Button>
         </form>
+        </div>
       </section>
 
       {/* Continue studying */}

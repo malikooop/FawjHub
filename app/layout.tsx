@@ -9,13 +9,13 @@ import { BottomNav } from '@/components/bottom-nav';
 import { Toaster } from '@/components/ui/sonner';
 
 export const metadata: Metadata = {
-  title: 'FawjHub — Academic Resource Platform',
-  description: 'A clean, private study hub for university students. Find lectures, TDs, TPs, exams, and corrections organized by subject.',
+  title: 'Nibras — Academic Resource Platform',
+  description: 'Nibras is a focused academic hub for university students to find lectures, TDs, TPs, exams, and corrections organized by subject.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'FawjHub',
+    title: 'Nibras',
   },
 };
 

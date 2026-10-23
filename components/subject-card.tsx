@@ -21,7 +21,7 @@ export function SubjectCard({ subject, resourceCount, completedCount }: SubjectC
   return (
     <Link
       href={`/subjects/${subject.slug}`}
-      className="group flex flex-col gap-3 rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/30"
+      className="group flex min-h-[178px] flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
     >
       <div className="flex items-start justify-between">
         <div
