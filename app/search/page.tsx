@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { Suspense, useEffect, useState, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search as SearchIcon, Filter, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ function sanitizeSearchTerm(input: string): string {
     .substring(0, 100);
 }
 
-export default function SearchPage() {
+function SearchContent() {
   const { t } = useI18n();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -224,5 +224,13 @@ export default function SearchPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<LoadingState message="Loading search…" />}>
+      <SearchContent />
+    </Suspense>
   );
 }

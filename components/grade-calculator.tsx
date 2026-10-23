@@ -77,7 +77,7 @@ export function GradeCalculator() {
               </label>
               <label className="space-y-1 text-sm">
                 <span className="text-muted-foreground">{t('calculator.coefficient')}</span>
-                <Input type="number" min="0.01" step="0.01" value={row.coefficient} onChange={(event) => updateRow(row.id, 'coefficient', event.target.value)} inputMode="decimal" />
+                <Input type="number" min="0" step="0.01" value={row.coefficient} onChange={(event) => updateRow(row.id, 'coefficient', event.target.value)} inputMode="decimal" />
               </label>
               <Button type="button" variant="ghost" size="icon" onClick={() => setRows((current) => current.filter((item) => item.id !== row.id))} disabled={rows.length === 1} aria-label={t('calculator.remove')} title={t('calculator.remove')}>
                 <Trash2 className="h-4 w-4" aria-hidden="true" />

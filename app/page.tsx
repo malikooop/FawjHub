@@ -9,6 +9,7 @@ import {
   FileText,
   ArrowRight,
   BookOpen,
+  Calculator,
   Star,
 } from 'lucide-react';
 
@@ -302,13 +303,31 @@ setProgressData(
         </section>
       )}
 
-      <section className="flex flex-col gap-4 border-y border-border py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="font-semibold">{t('calculator.title')}</h2>
-          <p className="text-sm text-muted-foreground">{t('calculator.description')}</p>
+      <section aria-labelledby="student-tools-title" className="space-y-4">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{t('calculator.eyebrow')}</p>
+            <h2 id="student-tools-title" className="mt-1 text-lg font-semibold tracking-tight sm:text-xl">{t('calculator.toolsTitle')}</h2>
+          </div>
         </div>
-        <Link href="/calculator" className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-primary hover:underline">
-          {t('nav.calculator')} <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+
+        <Link
+          href="/calculator"
+          className="group flex flex-col gap-5 rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex-row sm:items-center sm:justify-between sm:p-6"
+        >
+          <div className="flex min-w-0 items-start gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Calculator className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 space-y-1">
+              <span className="block font-semibold">{t('calculator.title')}</span>
+              <span className="block max-w-2xl text-sm leading-6 text-muted-foreground">{t('calculator.description')}</span>
+            </span>
+          </div>
+          <span className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-primary">
+            {t('calculator.open')}
+            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" aria-hidden="true" />
+          </span>
         </Link>
       </section>
 
