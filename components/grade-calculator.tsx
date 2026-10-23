@@ -23,11 +23,19 @@ export function GradeCalculator() {
       grade: Number(row.grade),
       coefficient: Number(row.coefficient),
     }));
-    const invalid = parsed.some((row) => row.grade < 0 || row.grade > 20 || row.coefficient <= 0 || !Number.isFinite(row.grade) || !Number.isFinite(row.coefficient));
-    const incomplete = rows.some((row) => row.grade === '' || row.coefficient === '');
+    const invalid = parsed.some(
+      (row) =>
+        row.grade < 0 ||
+        row.grade > 20 ||
+        row.coefficient < 0 ||
+        !Number.isFinite(row.grade) ||
+        !Number.isFinite(row.coefficient)
+    );
+    const incomplete = rows.some((row) => row.grade.trim() === '' || row.coefficient.trim() === '');
     const totalCoefficient = parsed.reduce((sum, row) => sum + row.coefficient, 0);
     const weightedTotal = parsed.reduce((sum, row) => sum + row.grade * row.coefficient, 0);
-    return { invalid, incomplete, totalCoefficient, weightedTotal, average: totalCoefficient ? weightedTotal / totalCoefficient : null };
+    const hasWeight = totalCoefficient > 0 && Number.isFinite(totalCoefficient);
+    return { invalid, incomplete, totalCoefficient, weightedTotal, average: hasWeight ? weightedTotal / totalCoefficient : null };
   }, [rows]);
 
   const updateRow = (id: number, field: keyof Omit<ModuleRow, 'id'>, value: string) => {
@@ -84,7 +92,18 @@ export function GradeCalculator() {
 
       <aside className="h-fit rounded-xl border border-primary/20 bg-primary/[0.05] p-5">
         <div className="flex items-center gap-2 text-primary"><Calculator className="h-5 w-5" aria-hidden="true" /><h2 className="font-semibold">{t('calculator.result')}</h2></div>
-        {result.invalid ? <p className="mt-5 text-sm text-destructive">{t('calculator.invalid')}</p> : result.incomplete ? <p className="mt-5 text-sm text-muted-foreground">{t('calculator.incomplete')}</p> : result.average !== null ? <p className="mt-4 text-4xl font-semibold tracking-tight">{result.average.toFixed(2)}<span className="ms-2 text-base font-normal text-muted-foreground">/ 20</span></p> : null}
+        {result.invalid ? (
+          <p className="mt-5 text-sm text-destructive">{t('calculator.invalid')}</p>
+        ) : result.incomplete ? (
+          <p className="mt-5 text-sm text-muted-foreground">{t('calculator.incomplete')}</p>
+        ) : result.average !== null ? (
+          <p className="mt-4 text-4xl font-semibold tracking-tight">
+            {result.average.toFixed(2)}
+            <span className="ms-2 text-base font-normal text-muted-foreground">/ 20</span>
+          </p>
+        ) : (
+          <p className="mt-5 text-sm text-muted-foreground">{t('calculator.zeroTotal')}</p>
+        )}
         <div className="mt-5 border-t border-primary/10 pt-4 text-sm text-muted-foreground"><p>{t('calculator.formula')}</p>{result.totalCoefficient > 0 && <p className="mt-2">{t('calculator.included', { count: rows.filter((row) => row.grade !== '').length })}</p>}</div>
       </aside>
     </div>
