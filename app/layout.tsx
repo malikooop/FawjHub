@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cairo.variable}`}>
       <head>
-        <meta name="theme-color" content="#2563eb" />
+        <meta name="theme-color" content="#172B4D" />
       </head>
       <body className="font-sans antialiased">
         <ThemeProvider>

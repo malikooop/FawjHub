@@ -14,6 +14,7 @@ import {
   LogOut,
   Search,
   MessageSquareText,
+  Calculator,
 } from 'lucide-react';
 
 import { useAuth } from '@/components/providers/auth-provider';
@@ -47,6 +48,7 @@ export function Header() {
     { href: '/exams', label: t('nav.exams'), icon: FileText },
     { href: '/bookmarks', label: t('nav.bookmarks'), icon: Bookmark },
     { href: '/search', label: t('nav.search'), icon: Search },
+    { href: '/calculator', label: t('nav.calculator'), icon: Calculator },
     {
       href: '/requests',
       label: t('nav.requests'),

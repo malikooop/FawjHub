@@ -302,6 +302,16 @@ setProgressData(
         </section>
       )}
 
+      <section className="flex flex-col gap-4 border-y border-border py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="font-semibold">{t('calculator.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('calculator.description')}</p>
+        </div>
+        <Link href="/calculator" className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-primary hover:underline">
+          {t('nav.calculator')} <ArrowRight className="h-4 w-4 rtl:rotate-180" aria-hidden="true" />
+        </Link>
+      </section>
+
       {/* Subjects */}
       <section className="space-y-4">
         <div className="flex items-center justify-between gap-4">
