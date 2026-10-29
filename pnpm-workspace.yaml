@@ -1,0 +1,5 @@
+allowBuilds:
+  unrs-resolver: false
+overrides:
+  minimatch: ">=9.0.6"
+  postcss: ">=8.5.18"

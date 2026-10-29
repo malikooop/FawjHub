@@ -2,12 +2,6 @@
   "name": "nextjs",
   "version": "0.1.0",
   "private": true,
-  "pnpm": {
-    "overrides": {
-      "minimatch": ">=9.0.6",
-      "postcss": ">=8.5.18"
-    }
-  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -74,7 +68,6 @@
     "tailwindcss": "3.3.3",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "5.2.2",
-    "vaul": "^0.9.9",
-    "zod": "^3.23.8"
+    "vaul": "^0.9.9"
   }
 }

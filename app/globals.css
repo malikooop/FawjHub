@@ -4,65 +4,100 @@
 
 @layer base {
   :root {
-    --background: 48 20% 97%;
-    --foreground: 215 52% 20%;
+    /* Surfaces: warm ivory page, white cards */
+    --background: 42 30% 96%;
+    --foreground: 214 45% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 215 52% 20%;
+    --card-foreground: 214 45% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 10%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
-    --success: 142 71% 45%;
+    --popover-foreground: 214 45% 13%;
+
+    /* Primary action: restrained forest green */
+    --primary: 153 48% 24%;
+    --primary-foreground: 45 40% 98%;
+
+    /* Neutral support */
+    --secondary: 40 20% 93%;
+    --secondary-foreground: 214 45% 13%;
+    --muted: 40 18% 93%;
+    --muted-foreground: 215 16% 38%;
+
+    /* Accent = subtle interaction surface (hover, selected), not a brand color */
+    --accent: 150 22% 91%;
+    --accent-foreground: 153 50% 17%;
+
+    /* Status */
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 28%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --chart-1: 221 83% 53%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 84% 60%;
-    --radius: 0.625rem;
+    --warning-foreground: 30 85% 10%;
+
+    /* Lines and focus */
+    --border: 40 18% 86%;
+    --input: 40 12% 76%;
+    --ring: 153 48% 30%;
+
+    /* Charts */
+    --chart-1: 153 48% 30%;
+    --chart-2: 213 50% 30%;
+    --chart-3: 38 85% 50%;
+    --chart-4: 190 45% 40%;
+    --chart-5: 0 65% 50%;
+
+    /* Brand navy (header, footer, dark panels) */
+    --navy: 213 60% 16%;
+    --navy-deep: 213 62% 11%;
+    --navy-foreground: 42 33% 96%;
+    --navy-muted: 213 25% 72%;
+    --navy-accent: 152 45% 62%;
+
+    --radius: 0.5rem;
   }
+
   .dark {
-    --background: 215 38% 9%;
-    --foreground: 210 40% 98%;
-    --card: 222 22% 10%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 22% 10%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 221 83% 53%;
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --chart-1: 221 83% 53%;
-    --chart-2: 199 89% 48%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 38 92% 50%;
-    --chart-5: 0 84% 60%;
+    /* Deep navy surfaces rather than neutral gray-black */
+    --background: 213 55% 8%;
+    --foreground: 42 25% 93%;
+    --card: 213 45% 12%;
+    --card-foreground: 42 25% 93%;
+    --popover: 213 45% 12%;
+    --popover-foreground: 42 25% 93%;
+
+    --primary: 152 45% 55%;
+    --primary-foreground: 213 62% 9%;
+
+    --secondary: 213 35% 17%;
+    --secondary-foreground: 42 25% 93%;
+    --muted: 213 35% 17%;
+    --muted-foreground: 213 18% 68%;
+
+    --accent: 152 25% 18%;
+    --accent-foreground: 152 45% 78%;
+
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 45% 50%;
+    --success-foreground: 213 62% 9%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 30 85% 10%;
+
+    --border: 213 32% 22%;
+    --input: 213 30% 27%;
+    --ring: 152 45% 55%;
+
+    --chart-1: 152 45% 55%;
+    --chart-2: 213 55% 62%;
+    --chart-3: 38 85% 55%;
+    --chart-4: 190 50% 55%;
+    --chart-5: 0 65% 60%;
+
+    --navy: 213 58% 11%;
+    --navy-deep: 213 62% 7%;
+    --navy-foreground: 42 25% 93%;
+    --navy-muted: 213 20% 66%;
+    --navy-accent: 152 45% 62%;
   }
 }
 
@@ -86,6 +121,23 @@
   [dir="ltr"] body {
     font-family: var(--font-inter), system-ui, sans-serif;
   }
+
+  /* Visible keyboard focus everywhere; components that set their own ring override this */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer utilities {
@@ -98,5 +150,10 @@
   }
   .text-balance {
     text-wrap: balance;
+  }
+  /* Keeps codes, numbers and file extensions intact inside RTL text */
+  .ltr-isolate {
+    direction: ltr;
+    unicode-bidi: isolate;
   }
 }

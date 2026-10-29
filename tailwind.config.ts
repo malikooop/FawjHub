@@ -22,6 +22,14 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      transitionDuration: {
+        fast: '120ms',
+        base: '200ms',
+        slow: '320ms',
+      },
+      transitionTimingFunction: {
+        brand: 'cubic-bezier(0.2, 0, 0, 1)',
+      },
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
@@ -60,6 +68,13 @@ const config: Config = {
         warning: {
           DEFAULT: 'hsl(var(--warning))',
           foreground: 'hsl(var(--warning-foreground))',
+        },
+        navy: {
+          DEFAULT: 'hsl(var(--navy))',
+          deep: 'hsl(var(--navy-deep))',
+          foreground: 'hsl(var(--navy-foreground))',
+          muted: 'hsl(var(--navy-muted))',
+          accent: 'hsl(var(--navy-accent))',
         },
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
